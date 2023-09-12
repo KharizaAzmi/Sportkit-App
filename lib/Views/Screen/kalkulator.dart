@@ -47,6 +47,9 @@ class Kalkulator extends StatefulWidget {
   final MatchData matchData;
   final Map<String, dynamic> data;
   final String id;
+  final String selectedDate;
+  final List<String> activeTerang;
+  final List<String> activeGelap;
 
 
   Kalkulator({
@@ -58,59 +61,14 @@ class Kalkulator extends StatefulWidget {
     required this.matchData,
     required this.data,
     required this.id,
-    // ...dan seterusnya untuk selectedColor3 dan selectedColor4
+    required this.selectedDate,
+    required this.activeTerang,
+    required this.activeGelap,
   });
 
-  // factory Kalkulator.createInstance({
-  //   required Color selectedColor1,
-  //   required Color selectedColor2,
-  //   required Color selectedColor3,
-  //   required Color selectedColor4,
-  //   required String token,
-  //   required MatchData matchData,
-  // }) {
-  //   final instance = Kalkulator(
-  //     selectedColor1: selectedColor1,
-  //     selectedColor2: selectedColor2,
-  //     selectedColor3: selectedColor3,
-  //     selectedColor4: selectedColor4,
-  //     token: token,
-  //     matchData: matchData,
-  //   );
-
-    // Lakukan sesuatu dengan matchData jika diperlukan
-    // instance._processMatchData(matchData);
-
-    // void _processMatchData(MatchData matchData) {
-    //   // Lakukan sesuatu dengan matchData di sini
-    // }
-
-  //   return instance;
-  // }
-
-  //Kalkulator({Key? key}) : super(key: key);
 
   @override
   _KalkulatorState createState() => _KalkulatorState();
-
-  // final List<Widget> buttons;
-  //
-  // Kalkulator({required this.buttons});
-  //
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Row(
-  //     children: buttons
-  //         .map(
-  //           (button) =>
-  //           Padding(
-  //             padding: EdgeInsets.all(8.0), // Padding antara tombol
-  //             child: button,
-  //           ),
-  //     )
-  //         .toList(),
-  //   );
-  //}
 }
 
 class _KalkulatorState extends State<Kalkulator> {
@@ -152,7 +110,7 @@ class _KalkulatorState extends State<Kalkulator> {
               _selectedColors = colors;
             });
             Navigator.of(context).pop();
-          }, token: widget.token, matchData: widget.matchData, id: '',
+          }, token: widget.token, matchData: widget.matchData, id: '', selectedDate: widget.selectedDate,
         ),
       ),
     );
@@ -203,30 +161,134 @@ class _KalkulatorState extends State<Kalkulator> {
     });
   }
 
+  // StreamController<int> _timerStreamController = StreamController<int>();
+  //
+  // void _startTimer() {
+  //   if (_minutes > 0 || _seconds > 0) {
+  //     setState(() {
+  //       _isRunning = true;
+  //     });
+  //
+  //     int totalSeconds = _minutes * 60 + _seconds;
+  //     _timerStreamController = StreamController<int>();
+  //     int remainingSeconds = totalSeconds; // Initialize remainingSeconds
+  //
+  //     Stream<int> countdownStream = Stream.periodic(
+  //       Duration(seconds: 1),
+  //           (x) {
+  //         remainingSeconds -= 1; // Decrement remainingSeconds
+  //         return remainingSeconds;
+  //       },
+  //     ).takeWhile((count) => count >= 0);
+  //
+  //     countdownStream.listen((remainingSeconds) {
+  //       _timerStreamController.sink.add(remainingSeconds);
+  //       if (remainingSeconds <= 0) {
+  //         _pauseTimer(); // Call this to stop the timer when it reaches 0.
+  //       }
+  //     });
+  //   }
+  // }
+  //
+  //
+  // void _pauseTimer() {
+  //   setState(() {
+  //     _isRunning = false;
+  //   });
+  //   _timerSubscription.cancel();
+  // }
+  //
+  // void _resetTimer() {
+  //   setState(() {
+  //     _isRunning = false;
+  //     _minutes = 0;
+  //     _seconds = 0;
+  //   });
+  //   _timerSubscription.cancel();
+  // }
+
+
   String _formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int remainingSeconds = seconds % 60;
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  // void _startTimer() {
-  //   final timerProvider = Provider.of<TimerProvider>(context, listen: false);
-  //
-  //   if (!timerProvider.isActive) {
-  //     final configuration = Provider.of<ConfigurationModel>(context, listen: false);
-  //     timerProvider.startTimer(configuration.time);
-  //   }
+  // String _formatTime() {
+  //   return '$_minutes:${_seconds.toString().padLeft(2, '0')}';
   // }
 
-  // void _pauseTimer() {
-  //   final timerProvider = Provider.of<TimerProvider>(context, listen: false);
-  //   timerProvider.pauseTimer();
-  // }
+  TextEditingController _minutesController = TextEditingController();
+  TextEditingController _secondsController = TextEditingController();
 
-  // String _formatTime(int seconds) {
-  //   final timerProvider = Provider.of<TimerProvider>(context, listen: false);
-  //   return timerProvider.formatTime(seconds);
-  // }
+  int _minutes = 0;
+  int _seconds = 0;
+
+  bool _isRunning = false;
+  late Stream<int> _timerStream;
+  late StreamSubscription<int> _timerSubscription;
+
+  Future<void> _showPickerDialog(BuildContext context) async {
+    final selectedTime = await showDialog<TimeOfDay>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Choose Time'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _minutesController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Minutes'),
+                      onChanged: (value) {
+                        _minutes = int.tryParse(value) ?? 0;
+                      },
+                    ),
+                  ),
+                  Text(':', style: TextStyle(fontSize: 24)),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _secondsController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: 'Seconds'),
+                      onChanged: (value) {
+                        _seconds = int.tryParse(value) ?? 0;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text('Set'),
+              onPressed: () {
+                Navigator.of(context).pop(TimeOfDay(
+                  hour: _minutes,
+                  minute: _seconds,
+                ));
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selectedTime != null) {
+      setState(() {
+        _minutes = selectedTime.hour;
+        _seconds = selectedTime.minute;
+        _start = (_minutes * 60) + _seconds;
+      });
+    }
+  }
+
+
 
   late String token;
   late String id;
@@ -245,13 +307,25 @@ class _KalkulatorState extends State<Kalkulator> {
     super.initState();
     initPlugin();
     initializeToken();
-    fetchData();
+    fetchData(widget.selectedDate);
     token = widget.token;
     matchData = widget.matchData;
     id = widget.id;
+    fetchDataSubtitution(id);
     final configuration = Provider.of<ConfigurationModel>(context, listen: false);
     _start = configuration.time * 60;
     // int _start = configuration.time;
+    // _timerStream = Stream<int>.periodic(
+    //   Duration(seconds: 1),
+    //       (x) => _minutes * 60 + _seconds - x - 1,
+    // ).takeWhile((count) => count > 0);
+    // _timerSubscription = _timerStream.listen((remainingSeconds) {
+    //   setState(() {
+    //     if (remainingSeconds <= 0) {
+    //       _isRunning = false;
+    //     }
+    //   });
+    // });
   }
 
   List<String> selectedValues2 = [];
@@ -287,7 +361,6 @@ class _KalkulatorState extends State<Kalkulator> {
     return value;
   }
 
-
   void _handleSelection(String value) {
     setState(() {
       selectedOption = value;
@@ -319,20 +392,20 @@ class _KalkulatorState extends State<Kalkulator> {
       // selectedValues = selectedValues as List<String>;
       // selectedValues2 = selectedValues2 as List<String>;
     });
-    isOk = false;
-    setState(() {
-      isOk = true;
-      _handleButtonPress(value1);
-    });
+    //isOk = false;
+    // setState(() {
+    //   isOk = true;
+    //  // _handleButtonPress(value1);
+    // });
     // _handleClearButtonPress();
   }
 
-  bool isConfigurationDataInputted = false;
-  void _handleConfigurationDataInput() {
-    setState(() {
-      isConfigurationDataInputted = true;
-    });
-  }
+  // bool isConfigurationDataInputted = false;
+  // void _handleConfigurationDataInput() {
+  //   setState(() {
+  //     isConfigurationDataInputted = true;
+  //   });
+  // }
 
   void initializeToken() {
     token = widget.token;
@@ -346,11 +419,11 @@ class _KalkulatorState extends State<Kalkulator> {
 
   List<MatchData> matchDataList = [];
   //late Map<String, dynamic> matchDataList;
-  void fetchData() async {
-    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=2023-07-05');
+  void fetchData(String selectedDate) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=$selectedDate');
     final response = await http.get(url, headers: getHeaders());
 
-    print(response);
+    //print(response);
 
     if (response.statusCode == 200) {
       final responseData = response.body;
@@ -390,6 +463,43 @@ class _KalkulatorState extends State<Kalkulator> {
     }
   }
 
+  List<dynamic> terangMain = [];
+  List<dynamic> gelapMain = [];
+  void fetchDataSubtitution(String id) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_pemain.php?event_id=$id&action=subtitution');
+    final response = await http.get(url, headers: getHeaders());
+
+    final responseJson = json.decode(response.body);
+
+    // Pastikan respons memiliki status true sebelum melanjutkan
+    if (responseJson['status'] == true) {
+      final data = responseJson['data'];
+
+      // Parse data pemain terang_main
+      //final terangMain= json.decode(data['terang_main']);
+      //terangMain = List<int>.from(json.decode(data['terang_main']));
+
+      // Parse data pemain gelap_main
+      //final gelapMain = json.decode(data['gelap_main']);
+
+      final terangMainString = data['terang_main'];
+      final gelapMainString = data['gelap_main'];
+
+      terangMain = terangMainString.split(',').map((e) => int.parse(e)).toList();
+      gelapMain = gelapMainString.split(',').map((e) => int.parse(e)).toList();
+
+
+      // Sekarang, Anda memiliki data pemain terang_main dan gelap_main dalam bentuk List<int>
+      print('Pemain Terang Main: $terangMain');
+      print('Pemain Gelap Main: $gelapMain');
+    } else {
+      // Status false, tangani kesalahan jika diperlukan
+      final message = responseJson['message'];
+      print('Error: $message');
+    }
+  }
+
+
   Future<void> initPlugin() async {
     _recorderStatus = _recorder.status.listen((status) {
       if (mounted) {
@@ -413,10 +523,6 @@ class _KalkulatorState extends State<Kalkulator> {
   }
 
   @override
-  // void dispose() {
-  //   _streamSubscription?.cancel();
-  //   super.dispose();
-  // }
 
   void handleStream() async {
 
@@ -485,16 +591,61 @@ class _KalkulatorState extends State<Kalkulator> {
 
     DetectIntentResponse dataIndo = await dialogflow.detectIntent(text, 'id-ID');
     String fulfillmentTextIndo = dataIndo.queryResult.fulfillmentText;
-    if(fulfillmentTextIndo.isNotEmpty){
-      Message botMessage = Message(
-        text: fulfillmentTextIndo,
-        type: false,
-      );
 
-      setState(() {
-        _fulfillmentText = fulfillmentTextIndo;
-        _messages.insert(0, botMessage);
-      });
+    String? NPStringTerang = matchData.terangPemain; // String dengan angka-angka yang dipisahkan koma
+    List<int> dataIntTerang = NPStringTerang!.split(',').map((e) => int.parse(e)).toList();
+    print(dataIntTerang);
+
+    String? NPStringGelap = matchData.gelapPemain; // String dengan angka-angka yang dipisahkan koma
+    List<int> dataIntGelap = NPStringGelap!.split(',').map((e) => int.parse(e)).toList();
+
+    String messageTerang = '';
+
+    if(fulfillmentTextIndo.isNotEmpty){
+      // Message botMessage = Message(
+      //   text: fulfillmentTextIndo,
+      //   type: false,
+      // );
+      //
+      // setState(() {
+      //   _fulfillmentText = fulfillmentTextIndo;
+      //   _messages.insert(0, botMessage);
+      // });
+
+      for(int i = 0; i<dataIntTerang.length; i ++){
+        if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} cetak poin 1'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Made +1';
+          print(messageTerang);
+          Message botMessage = Message(
+            text: messageTerang,
+            type: false,
+          );
+
+          setState(() {
+            _fulfillmentText = fulfillmentTextIndo;
+            _messages.insert(0, botMessage);
+          });
+        }
+        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} cetak poin 2'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Made +2';
+        }
+        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} cetak poin 3'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Made +3';
+        }
+        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} gagal cetak poin 1'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Missed +1';
+        }
+        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} gagal cetak poin 2'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Missed +2';
+        }
+        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} gagal cetak poin 3'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Missed +3';
+        }
+        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} asis'){
+          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Assist';
+        }
+      }
+
 
       // Simpan respons ke database
       await DatabaseManager().saveResponseToDatabase(fulfillmentTextIndo);
@@ -515,67 +666,19 @@ class _KalkulatorState extends State<Kalkulator> {
     final matchTitle = Provider.of<ConfigurationDataProvider>(context, listen: false).MatchTitle;
     final tanggal = Provider.of<ConfigurationDataProvider>(context, listen: false).tanggal;
     final jam = Provider.of<ConfigurationDataProvider>(context, listen: false).jam;
+    double screenWidth = MediaQuery.of(context).size.width;
+    double screenHeight = MediaQuery.of(context).size.height;
 
     // Menggunakan Provider.of untuk mengakses MatchDataProvider
     final matchDataProvider = Provider.of<MatchDataProvider>(context);
 
     final buttonStatusProvider = Provider.of<ButtonStatusModel>(context);
-    List<String> selectedNumbers = buttonStatusProvider.selectedNumbers;
-
-    //print('waktu: ${configuration.time}');
-    // Mengakses data yang disimpan dalam MatchDataProvider
-    //final matchData = matchDataProvider.matchData;
-
-
-    // final userDataProvider = Provider.of<UserDataProvider>(context);
-    // final _userData = userDataProvider.userData;
-    // print('waktu: ${_userData!.periods}');
-
-
-    //final configuration = Provider.of<ConfigurationModel>(context);
-    //final TextEditingController periodtimesController = configuration.periodtimesController;
-    //_start = configuration.time * 60;
 
     final timerProvider = Provider.of<CountdownTimerProvider>(context);
-    //final TextEditingController periodtimesController = timerProvider.periodtimesController;
-
-    //List<Map<String, dynamic>> dataFromDatabase = DatabaseManager().getDataFromDatabase() as List<Map<String, dynamic>>;
-
-    // Buat variabel untuk menyimpan respons
-    //List<String> responses = [];
-
-    // for (var data in dataFromDatabase) {
-    //   String responseText = data['responseText']; // Sesuaikan dengan nama kolom yang sesuai dalam tabel Anda
-    //   responses.add(responseText);
-    // }
-
-    // String _formatTime(int seconds) {
-    //   int minutes = seconds ~/ 60;
-    //   int remainingSeconds = seconds % 60;
-    //   return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
-    // }
-
-    //final matchData = Provider.of<MatchDataProvider>(context).matchData;
     return Scaffold(
       backgroundColor: SportkitColors.darkBackground,
       appBar:  AppBar(
         backgroundColor: SportkitColors.midBackground,
-        //leading: Icon(Icons.sports_basketball),
-        // leading: ElevatedButton.icon(
-        //   onPressed: () {
-        //     Navigator.of(context).pop(); // Fungsi untuk kembali
-        //   },
-        //   icon: Icon(Icons.arrow_back_ios, color: SportkitColors.white, size: 20),
-        //   label: SizedBox.shrink(),
-        //   style: ElevatedButton.styleFrom(
-        //     primary: SportkitColors.grey, // Set warna latar belakang menjadi transparan
-        //     //elevation: 4,
-        //     shape: RoundedRectangleBorder(
-        //       borderRadius: BorderRadius.circular(4), // Radius border (sesuaikan dengan kebutuhan)
-        //     ), // Menghilangkan bayangan saat ditekan
-        //     padding: EdgeInsets.symmetric(vertical: 1, horizontal: 1),
-        //   ),
-        // ),
         leading: GestureDetector(
           onTap: () {
             Navigator.of(context).pop(); // Fungsi untuk kembali
@@ -587,24 +690,6 @@ class _KalkulatorState extends State<Kalkulator> {
             ),
         ),
         actions: <Widget>[
-          //Padding(padding: EdgeInsets.only(left: 20, right: 20)),
-          // ElevatedButton(
-          //   onPressed: () {
-          //     // Logika ketika tombol play ditekan
-          //   },
-          //   style: ElevatedButton.styleFrom(
-          //     padding: EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
-          //     primary: SportkitColors.grey, // Warna latar belakang tombol
-          //     shape: RoundedRectangleBorder(
-          //       borderRadius: BorderRadius.circular(4), // Radius border (sesuaikan dengan kebutuhan)
-          //     ),
-          //   ),
-          //   child: const Icon(
-          //     Icons.arrow_back_ios,
-          //     size: 24, // Ukuran ikon
-          //     color: Colors.white, // Warna ikon
-          //   ),
-          // ),
           SvgPicture.asset(
             'assets/image/logo-stat.svg',
             width: 434,
@@ -664,7 +749,7 @@ class _KalkulatorState extends State<Kalkulator> {
                         _selectedColors = colors;
                       });
                       Navigator.of(context).pop();
-                    }, id: id!,),
+                    }, id: id!, selectedDate: widget.selectedDate,),
                 ),
               );
             },
@@ -681,42 +766,6 @@ class _KalkulatorState extends State<Kalkulator> {
               color: Colors.white, // Warna ikon
             ),
           ),
-          // GestureDetector(
-          //   onTap: () {
-          //     String id = matchData?.id ?? '';
-          //     if (id != null) {
-          //       Navigator.push(
-          //         context,
-          //         MaterialPageRoute(
-          //           builder: (context) => InputConfiguration(
-          //             token: widget.token,
-          //             matchData: widget.matchData,
-          //             initialColors: _selectedColors,
-          //             onColorsChanged: (colors) {
-          //               setState(() {
-          //                 _selectedColors = colors;
-          //               });
-          //               Navigator.of(context).pop();
-          //             },
-          //             id: id,
-          //           ),
-          //         ),
-          //       );
-          //     }
-          //   },
-          //   child: Container(
-          //     padding: EdgeInsets.all(8),
-          //     decoration: BoxDecoration(
-          //       color: SportkitColors.grey, // Warna latar belakang tombol
-          //       borderRadius: BorderRadius.circular(4), // Radius border (sesuaikan dengan kebutuhan)
-          //     ),
-          //     child: Icon(
-          //       Icons.settings,
-          //       size: 24, // Ukuran ikon
-          //       color: Colors.white, // Warna ikon
-          //     ),
-          //   ),
-          // ),
         ],
       ),
       body: SingleChildScrollView(
@@ -779,12 +828,21 @@ class _KalkulatorState extends State<Kalkulator> {
                             color: SportkitColors.black,
                             borderRadius: BorderRadius.circular(4)
                         ),
-                        child: Text(
-                          _formatTime(_start!),
-                          //'${_formatTime(10)}',
-                          style: TextStyle(
-                            color: SportkitColors.lightGreen,
-                            fontSize: 20,
+                        // child: Text(
+                        //   _formatTime(_start!),
+                        //   //'${_formatTime(10)}',
+                        //   style: TextStyle(
+                        //     color: SportkitColors.lightGreen,
+                        //     fontSize: 20,
+                        //   ),
+                        // ),
+                        child: GestureDetector(
+                          onTap: () {
+                            _showPickerDialog(context);
+                          },
+                          child: Text(
+                            _formatTime(_start),
+                            style: TextStyle(fontSize: 24, color: SportkitColors.lightGreen),
                           ),
                         ),
                       ),
@@ -820,7 +878,7 @@ class _KalkulatorState extends State<Kalkulator> {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => Subtitution(token: widget.token, matchData: widget.matchData, id: widget.id,),
+                          builder: (context) => Subtitution(token: widget.token, matchData: widget.matchData, id: widget.id, selectedDate: widget.selectedDate,),
                         ),
                       );
                     },
@@ -859,16 +917,6 @@ class _KalkulatorState extends State<Kalkulator> {
                     left: 0,
                     child: Text(
                       _fulfillmentText, // Tampilkan hasil di sini
-                      style: TextStyle(fontSize: 20, color: SportkitColors.white),
-                    ),
-                  ),
-                  Positioned(
-                    // Letakkan Text widget untuk menampilkan hasil dari fungsi handleSubmitted
-                    top: 0,
-                    left: 0,
-                    child: Text(
-                      //'${matchData?.id ?? ''}', // ini ga masuk
-                      'xxx',
                       style: TextStyle(fontSize: 20, color: SportkitColors.white),
                     ),
                   ),
@@ -919,115 +967,48 @@ class _KalkulatorState extends State<Kalkulator> {
                   SingleChildScrollView(
                     child:  Column(
                       children: [
-                        if (isConfigurationDataInputted)
                           Wrap(
                             children: [
-                              ReusableButton1(
-                                text: '${selectedNumbers[0]}',
-                                onPressed: () => _handleButtonPressNumber('1'),
-                                value: '1',
-                                // width: 67,
-                                // height: 60,
-                                backgroundColor: widget.selectedColor2,
-                                textColor: widget.selectedColor1,
-                              ),
-                              Padding(padding: EdgeInsets.all(3)),
-                              ReusableButton1(
-                                text: '2',
-                                onPressed: () => _handleButtonPressNumber('2'),
-                                value: '2',
-                                // width: 67,
-                                // height: 60,
-                                backgroundColor: widget.selectedColor2,
-                                textColor: widget.selectedColor1,
-                              ),
-                              Padding(padding: EdgeInsets.all(3)),
-                              ReusableButton1(
-                                text: '3',
-                                onPressed: () => _handleButtonPressNumber('3'),
-                                value: '3',
-                                // width: 67,
-                                // height: 60,
-                                backgroundColor: widget.selectedColor2,
-                                textColor: widget.selectedColor1,
-                              ),
-                              Padding(padding: EdgeInsets.all(3)),
-                              ReusableButton1(
-                                text: '4',
-                                onPressed: () => _handleButtonPressNumber('4'),
-                                value: '4',
-                                // width: 67,
-                                // height: 60,
-                                backgroundColor: widget.selectedColor2,
-                                textColor: widget.selectedColor1,
-                              ),
-                              Padding(padding: EdgeInsets.all(3)),
-                              ReusableButton1(
-                                text: '5',
-                                onPressed: () => _handleButtonPressNumber('5'),
-                                value: '5',
-                                // width: 67,
-                                // height: 60,
-                                backgroundColor: widget.selectedColor2,
-                                textColor: widget.selectedColor1,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: widget.activeTerang.take(5).map((angka) {
+                                  //final angkaStr = angka.toString(); // Ubah angka menjadi String jika diperlukan
+                                  return Padding(
+                                    padding: EdgeInsets.all(3),
+                                    child: ReusableButton1(
+                                      text: angka,
+                                      onPressed: () => _handleButtonPressNumber(angka),
+                                      value: angka,
+                                      backgroundColor: widget.selectedColor2,
+                                      textColor: widget.selectedColor1,
+                                    ),
+                                  );
+                                }).toList(),
                               ),
                             ],
                           ),
                       ],
                     ),
                   ),
-                  Padding(padding: EdgeInsets.all(3)),
+                  Padding(padding: EdgeInsets.all(2)),
                   SingleChildScrollView(
                     child:  Wrap(
                       children: [
-                        ReusableButton1(
-                          text: '1',
-                          onPressed: () => _handleButtonPressNumber('1'),
-                          value: '1',
-                          // width: 67,
-                          // height: 60,
-                          backgroundColor: widget.selectedColor4,
-                          textColor: widget.selectedColor3,
-                        ),
-                        Padding(padding: EdgeInsets.all(3)),
-                        ReusableButton1(
-                          text: '2',
-                          onPressed: () => _handleButtonPressNumber('2'),
-                          value: '2',
-                          // width: 67,
-                          // height: 60,
-                          backgroundColor: widget.selectedColor4,
-                          textColor: widget.selectedColor3,
-                        ),
-                        Padding(padding: EdgeInsets.all(3)),
-                        ReusableButton1(
-                          text: '3',
-                          onPressed: () => _handleButtonPressNumber('3'),
-                          value: '3',
-                          // width: 67,
-                          // height: 60,
-                          backgroundColor: widget.selectedColor4,
-                          textColor: widget.selectedColor3,
-                        ),
-                        Padding(padding: EdgeInsets.all(3)),
-                        ReusableButton1(
-                          text: '4',
-                          onPressed: () => _handleButtonPressNumber('4'),
-                          value: '4',
-                          // width: 67,
-                          // height: 60,
-                          backgroundColor: widget.selectedColor4,
-                          textColor: widget.selectedColor3,
-                        ),
-                        Padding(padding: EdgeInsets.all(3)),
-                        ReusableButton1(
-                          text: '5',
-                          onPressed: () => _handleButtonPressNumber('5'),
-                          value: '5',
-                          // width: 67,
-                          // height: 60,
-                          backgroundColor: widget.selectedColor4,
-                          textColor: widget.selectedColor3,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: widget.activeGelap.take(5).map((angka) {
+                            //final angkaStr = angka.toString(); // Ubah angka menjadi String jika diperlukan
+                            return Padding(
+                              padding: EdgeInsets.all(3),
+                              child: ReusableButton1(
+                                text: angka,
+                                onPressed: () => _handleButtonPressNumber(angka),
+                                value: angka,
+                                backgroundColor: widget.selectedColor4,
+                                textColor: widget.selectedColor3,
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ],
                     ),

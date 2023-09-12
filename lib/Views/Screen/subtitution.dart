@@ -14,6 +14,7 @@ import 'package:sportkit_statistik/Views/Screen/kalkulator.dart';
 import 'package:http/http.dart' as http;
 
 import '../../Controller/buuttonStatus_provider.dart';
+import '../../Models/data_subtitution.dart';
 
 class Subtitution extends StatefulWidget {
   // final List<Color> initialColors;
@@ -22,8 +23,9 @@ class Subtitution extends StatefulWidget {
   final MatchData matchData;
   //final Map<String, dynamic> data;
   final String id;
+  final String selectedDate;
 
-  Subtitution({required this.token, required this.matchData, required this.id});
+  Subtitution({required this.token, required this.matchData, required this.id, required this.selectedDate});
 
 
   @override
@@ -37,17 +39,20 @@ class _SubtitutionState extends State<Subtitution> {
   late MatchData matchData;
   List<bool> isButtonActiveList = [];
   List<bool> isButtonActiveList2 = [];
-  List<String> angkaList = [];
-  List<String> angkaList2 = [];
+  List<String> angkaList = [''];
+  List<String> angkaList2 = [''];
+  String selectedDate = '2023-06-25';
 
   @override
   void initState() {
     super.initState();
     initializeToken();
-    fetchData();
+    fetchData(widget.selectedDate);
     token = widget.token;
     matchData = widget.matchData;
     id = widget.id;
+    //angkaList = []; // Inisialisasi angkaList dengan daftar kosong
+    //isButtonActiveList = []; // Inisialisasi isButtonActiveList dengan daftar kosong
   }
 
   void initializeToken() {
@@ -63,8 +68,8 @@ class _SubtitutionState extends State<Subtitution> {
   List<MatchData> matchDataList = [];
   late String? angka;
 
-  void fetchData() async {
-    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=2023-07-05');
+  void fetchData(String selectedDate) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=$selectedDate');
     final response = await http.get(url, headers: getHeaders());
 
     print(response);
@@ -115,6 +120,37 @@ class _SubtitutionState extends State<Subtitution> {
     }
   }
 
+  Future<void> sendSubtitutionData(SubtitutionData subtitutionData) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/post_subtitution.php');
+
+    // final headers = {
+    //   'Content-Type': 'application/json',
+    //   //Tambahkan header lain jika diperlukan, seperti token
+    // };
+
+    final jsonData = subtitutionData.toJson();
+    final requestBody = json.encode(jsonData);
+
+    print('data yang dikirim: $jsonData');
+
+    try {
+      final response = await http.post(url, headers: getHeaders(), body: requestBody);
+
+      if (response.statusCode == 200) {
+        // Data berhasil dikirim, Anda dapat menangani respons di sini
+        final responseData = json.decode(response.body);
+        print('Data berhasil dikirim');
+        print('Response Data: $responseData');
+      } else {
+        // Gagal mengirim data ke API
+        print('HTTP Request Failed: ${response.statusCode}');
+      }
+    } catch (error) {
+      // Terjadi kesalahan saat mengirim permintaan
+      print('Error: $error');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -155,42 +191,27 @@ class _SubtitutionState extends State<Subtitution> {
                     ],
                   ),
                   Wrap(
-                    alignment: WrapAlignment.center, // Menengahkan anak-anak dalam Wrap
-                    spacing: 4.0, // Jarak antara anak-anak (sesuaikan dengan kebutuhan)
-                    children: angkaList!.asMap().entries.map((entry) {
+                    alignment: WrapAlignment.center,
+                    spacing: 4.0,
+                    children: angkaList.asMap().entries.map((entry) {
                       final index = entry.key;
                       final angka = entry.value;
+                      final isActive = buttonStatusProvider.buttonStatusMap[id] != null ? buttonStatusProvider.buttonStatusMap[id]![index] : false;
+
                       return Padding(
                         padding: EdgeInsets.all(4),
                         child: ReusableButton1(
                           text: angka,
                           onPressed: () {
-                            //Periksa apakah tombol aktif
-                            if (isButtonActiveList![index]) {
-                              // Tombol aktif, lakukan tindakan yang diperlukan
-                              // ...
-
-                              // Kemudian, nonaktifkan tombol ini
-                              setState(() {
-                                isButtonActiveList![index] = false;
-                                //buttonStatusProvider.updateButtonStatus(index, false);
-                                //angkaList.remove(angka);
-                              });
-                            } else {
-                              // Tombol tidak aktif, Anda dapat mengaktifkannya kembali
-                              setState(() {
-                                isButtonActiveList![index] = true;
-                                //buttonStatusProvider.updateButtonStatus(index, true);
-                                //angkaList.add(angka);
-                              });
-                            }
-                            //buttonStatusProvider.toggleButton(angka);
+                            setState(() {
+                              buttonStatusProvider.toggleButton(id, index);
+                            });
                           },
                           value: angka,
                           width: 47,
                           height: 47,
-                          backgroundColor: isButtonActiveList![index] ? Colors.white12 : Colors.white, // Warna latar belakang disesuaikan dengan status aktif/nonaktif
-                          textColor: isButtonActiveList![index] ? Colors.black87 : Colors.blue, // Warna teks disesuaikan dengan status aktif/nonaktif
+                          backgroundColor: !isActive ? Colors.white12 : Colors.white,
+                          textColor: !isActive ? Colors.black87 : Colors.blue,
                         ),
                       );
                     }).toList(),
@@ -208,42 +229,32 @@ class _SubtitutionState extends State<Subtitution> {
                     ],
                   ),
                   Wrap(
-                    alignment: WrapAlignment.center, // Menengahkan anak-anak dalam Wrap
-                    spacing: 4.0, // Jarak antara anak-anak (sesuaikan dengan kebutuhan)
-                    children: angkaList2!.asMap().entries.map((entry) {
+                    alignment: WrapAlignment.center,
+                    spacing: 4.0,
+                    children: angkaList2.asMap().entries.map((entry) {
                       final index = entry.key;
                       final angka = entry.value;
+                      final isActive = buttonStatusProvider.buttonStatusMap2[id] != null ? buttonStatusProvider.buttonStatusMap2[id]![index] : false;
 
                       return Padding(
                         padding: EdgeInsets.all(4),
                         child: ReusableButton1(
                           text: angka,
                           onPressed: () {
-                            // Periksa apakah tombol aktif
-                            if (isButtonActiveList2![index]) {
-                              // Tombol aktif, lakukan tindakan yang diperlukan
-                              // ...
-
-                              // Kemudian, nonaktifkan tombol ini
-                              setState(() {
-                                isButtonActiveList2![index] = false;
-                              });
-                            } else {
-                              // Tombol tidak aktif, Anda dapat mengaktifkannya kembali
-                              setState(() {
-                                isButtonActiveList2![index] = true;
-                              });
-                            }
+                            setState(() {
+                              buttonStatusProvider.toggleButton2(id, index);
+                            });
                           },
                           value: angka,
                           width: 47,
                           height: 47,
-                          backgroundColor: isButtonActiveList2![index] ? Colors.white12 : Colors.black, // Warna latar belakang disesuaikan dengan status aktif/nonaktif
-                          textColor: isButtonActiveList2![index] ? Colors.black87 : Colors.red, // Warna teks disesuaikan dengan status aktif/nonaktif
+                          backgroundColor: !isActive ? Colors.white12 : Colors.black,
+                          textColor: !isActive ? Colors.black87 : Colors.red,
                         ),
                       );
                     }).toList(),
-                  ),
+                  )
+
                 ],
               ),
               Padding(padding: EdgeInsets.all(20)),
@@ -251,6 +262,24 @@ class _SubtitutionState extends State<Subtitution> {
                 text: 'OK',
                 onPressed: (){
                   String? id = matchData.id;
+                  //final activeTerang = angkaList.where((button) => isButtonActiveList[angkaList.indexOf(button)]).toList();
+                  //final activeTerang = angkaList.asMap().entries.where((entry) => buttonStatusProvider.isButtonActiveList[entry.key]).map((entry) => entry.value).toList();
+                  //final activeGelap = angkaList2.asMap().entries.where((entry) => buttonStatusProvider.isButtonActiveList2[entry.key]).map((entry) => entry.value).toList();
+                  //final activeGelap = angkaList2.where((button) => isButtonActiveList2[angkaList2.indexOf(button)]).toList();
+                  final activeTerang = angkaList.asMap().entries.where((entry) => buttonStatusProvider.buttonStatusMap[id]![entry.key]).map((entry) => entry.value).toList();
+                  final activeGelap = angkaList2.asMap().entries.where((entry) => buttonStatusProvider.buttonStatusMap2[id]![entry.key]).map((entry) => entry.value).toList();
+
+                  final subtitutionData = SubtitutionData(
+                    eventId: widget.id,
+                    minute: '10',
+                    quarter: '4',
+                    terangMain: activeTerang.map((e) => int.parse(e)).toList(),
+                    gelapMain: activeGelap.map((e) => int.parse(e)).toList(),
+                    ownerId: 'owner_id',
+                  );
+
+                  sendSubtitutionData(subtitutionData);
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -260,7 +289,7 @@ class _SubtitutionState extends State<Subtitution> {
                         selectedColor1: Colors.white,
                         selectedColor2: Colors.blue,
                         selectedColor3: Colors.red,
-                        selectedColor4: Colors.black, data: {}, id: id!,
+                        selectedColor4: Colors.black, data: {}, id: widget.id, selectedDate: selectedDate, activeTerang: activeTerang, activeGelap: activeGelap,
                         // onColorsChanged: (colors) {
                         //   setState(() {
                         //     _selectedColors = colors;

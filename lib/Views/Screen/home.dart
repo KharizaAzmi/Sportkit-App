@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sportkit_statistik/Models/data_tanggal.dart';
 import 'package:sportkit_statistik/Views/Screen/kalkulator.dart';
 import 'package:sportkit_statistik/Views/Screen/konfigurasi.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -32,17 +33,20 @@ class _HomeStatState extends State<HomeStat> {
   ];
 
   late Kalkulator myKalkulator;
-
-
+  String selectedValue = '2023-06-25';
   late String token;
   late String _id;
+  late TanggalItem tanggalItem;
   MatchData matchData = MatchData(id: '', waktu: '', venue: '', terang: '', gelap: '', KU: '', pool: '', terangPemain: '', gelapPemain: '', terangId: '', gelapId: '', tanggalPlain: '', tanggal: '', jam: '');
 
   @override
   void initState() {
     super.initState();
     initializeToken();
-    fetchData();
+    fetchDataTanggal(() {
+      fetchData(selectedValue);
+    });
+    fetchData(selectedValue);
     //_id = widget.matchData.id!;
     //matchData = widget.matchData;
     //final id = Provider.of<UserDataProvider>(context, listen: false).id;
@@ -60,8 +64,8 @@ class _HomeStatState extends State<HomeStat> {
 
   List<MatchData> matchDataList = [];
   //late Map<String, dynamic> matchDataList;
-  void fetchData() async {
-    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=2023-07-05');
+  void fetchData(String selectedDate) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=$selectedDate');
     final response = await http.get(url, headers: getHeaders());
 
     if (response.statusCode == 200) {
@@ -81,9 +85,52 @@ class _HomeStatState extends State<HomeStat> {
             .toList();
       });
       print('Response Data: $responseData');
+      print('selected Value: $selectedValue');
     } else {
       print('HTTP Request Failed: ${response.statusCode}');
     }
+  }
+
+  List<TanggalItem> tanggalList = [];
+  List<String> stringTanggalList = [];
+  List<dynamic> tanggalData = [];
+  Future<void> fetchDataTanggal(Function() callback) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_tanggal.php');
+    final response = await http.get(url, headers: getHeaders());
+
+    try {
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print(data);
+        //final List<dynamic> tanggalData = data['data'];
+
+        tanggalData = data['data'];
+
+        setState(() {
+          tanggalList = tanggalData.map((item) => TanggalItem.fromJson(item)).toList();
+          print('${tanggalList}');
+          for (var tanggalItem in tanggalList) {
+            stringTanggalList.add(tanggalItem.waktu);
+          }
+          print(stringTanggalList);
+        });
+      } else {
+        throw Exception('Gagal mengambil data');
+      }
+    } catch (error) {
+      print('Error: $error');
+    }
+  }
+
+  // Metode ini akan dipanggil ketika nilai dropdown berubah.
+  void onDropdownChanged(String? newValue) {
+    setState(() {
+      selectedValue = newValue!; // Perbarui selectedValue sesuai dengan yang dipilih.
+    });
+
+    // Setelah selectedValue diperbarui, Anda dapat memanggil fetchData dengan selectedValue baru di sini jika diperlukan.
+    fetchData(selectedValue);
   }
 
   Kalkulator kalkulatorInstance = Kalkulator(
@@ -92,7 +139,7 @@ class _HomeStatState extends State<HomeStat> {
     selectedColor3: Colors.red,
     selectedColor4: Colors.black,
     token: '',
-    matchData: MatchData(id: '', waktu: '', venue: '', terang: '', gelap: '', KU: '', pool: '', terangPemain: '', gelapPemain: '', terangId: '', gelapId: '', tanggalPlain: '', tanggal: '', jam: ''), data: {}, id: '',
+    matchData: MatchData(id: '', waktu: '', venue: '', terang: '', gelap: '', KU: '', pool: '', terangPemain: '', gelapPemain: '', terangId: '', gelapId: '', tanggalPlain: '', tanggal: '', jam: ''), data: {}, id: '', selectedDate: '', activeTerang: [], activeGelap: [],
     // ...and so on for selectedColor3 and selectedColor4
   );
 
@@ -103,6 +150,7 @@ class _HomeStatState extends State<HomeStat> {
     final id = Provider.of<UserDataProvider>(context, listen: false).id;
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: SportkitColors.midBackground,
@@ -113,7 +161,24 @@ class _HomeStatState extends State<HomeStat> {
             width: 424, // Lebar gambar
             height: 34, // Tinggi gambar
           ),
-          SizedBox(width: 220,),
+          SizedBox(width: 120,),
+          DropdownButton<String>(
+            value: selectedValue,
+            style: TextStyle(color: Colors.white), // Ganti warna teks
+            icon: Icon(Icons.arrow_drop_down, color: Colors.white), // Ganti ikon dropdown
+            elevation: 16, // Ganti elevasi dropdown menu
+            dropdownColor: SportkitColors.darkBackground, // Ganti warna latar belakang dropdown menu
+            items: stringTanggalList.map((String tanggal) {
+              return DropdownMenuItem<String>(
+                value: tanggal,
+                child: Text(
+                  tanggal,
+                  style: TextStyle(color: Colors.white), // Ganti warna teks item
+                ),
+              );
+            }).toList(),
+            onChanged: onDropdownChanged,
+          ),
         ],
       ),
       body: Stack(
@@ -245,7 +310,7 @@ class _HomeStatState extends State<HomeStat> {
                                                       _selectedColors = colors;
                                                     });
                                                     Navigator.of(context).pop();
-                                                  },token: widget.token, matchData: widget.matchData, id: id!,
+                                                  },token: widget.token, matchData: widget.matchData, id: id!, selectedDate: selectedValue,
                                                 ),
                                               ),
                                             );
@@ -276,7 +341,7 @@ class _HomeStatState extends State<HomeStat> {
                                                   selectedColor1: Colors.white,
                                                   selectedColor2: Colors.blue,
                                                   selectedColor3: Colors.red,
-                                                  selectedColor4: Colors.black, data: {}, id: id!,
+                                                  selectedColor4: Colors.black, data: {}, id: id!, selectedDate: selectedValue, activeTerang: [], activeGelap: [],
                                                   // onColorsChanged: (colors) {
                                                   //   setState(() {
                                                   //     _selectedColors = colors;
@@ -335,7 +400,7 @@ class _HomeStatState extends State<HomeStat> {
                             _selectedColors = colors;
                           });
                           Navigator.of(context).pop();
-                        }, id: widget.id,
+                        }, id: widget.id, selectedDate: '',
                       ),
                     ),
                   );

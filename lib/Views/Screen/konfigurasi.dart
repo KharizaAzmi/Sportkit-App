@@ -19,6 +19,7 @@ import '../../Controller/token_provider.dart';
 import '../../Controller/userData_provider.dart';
 import '../../Models/data_inputConfiguration.dart';
 import '../../Models/data_pertandingan.dart';
+import '../../Models/data_tanggal.dart';
 import '../../Models/data_user.dart';
 
 class InputConfiguration extends StatefulWidget {
@@ -28,6 +29,7 @@ class InputConfiguration extends StatefulWidget {
   final String token;
   final MatchData matchData;
   final String id;
+  final String selectedDate;
 
   InputConfiguration({
     required this.initialColors,
@@ -35,6 +37,7 @@ class InputConfiguration extends StatefulWidget {
     required this.token,
     required this.matchData,
     required this.id,
+    required this.selectedDate,
   });
 
 
@@ -174,6 +177,7 @@ class _InputConfigurationState extends State<InputConfiguration> {
   late String token;
   late String id;
   late MatchData matchData;
+  String selectedDate = '2023-06-25';
 
   @override
   void initState() {
@@ -182,7 +186,7 @@ class _InputConfigurationState extends State<InputConfiguration> {
     matchData = widget.matchData;
     id = widget.id;
     initializeToken();
-    fetchData();
+    fetchData(widget.selectedDate);
     _quarterController.text = "4";
     _periodtimesController.text = "10";
     _timesController.text = "5";
@@ -204,11 +208,12 @@ class _InputConfigurationState extends State<InputConfiguration> {
 
   late final responseData;
   List<MatchData> matchDataList = [];
-  void fetchData() async {
-    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=2023-07-05');
+  void fetchData(String selectedDate) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=$selectedDate');
     final response = await http.get(url, headers: getHeaders());
 
     print('$token');
+    print('tanggal yang di select: $selectedDate');
 
     //String token = Provider.of<TokenProvider>(context).token;
 
@@ -303,6 +308,7 @@ class _InputConfigurationState extends State<InputConfiguration> {
       print('HTTP Request Failed: ${response.statusCode}');
     }
   }
+
 
   @override
   void dispose() {
@@ -793,7 +799,7 @@ class _InputConfigurationState extends State<InputConfiguration> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => Kalkulator(selectedColor1: Colors.black, selectedColor2: Colors.red, selectedColor3: Colors.white, selectedColor4: Colors.blue, token: token, matchData: matchData, data: configuration.configurationData, id: widget.id!,),
+                          builder: (context) => Kalkulator(selectedColor1: Colors.black, selectedColor2: Colors.red, selectedColor3: Colors.white, selectedColor4: Colors.blue, token: token, matchData: matchData, data: configuration.configurationData, id: widget.id!, selectedDate: selectedDate, activeTerang: [], activeGelap: [],),
                         ),
                       );
                     },
