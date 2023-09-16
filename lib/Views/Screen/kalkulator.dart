@@ -23,7 +23,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:sportkit_statistik/Views/Screen/konfigurasi.dart';
 import 'package:sportkit_statistik/Database/db_dialogflow.dart';
 import 'package:http/http.dart' as http;
-import 'package:pausable_timer/pausable_timer.dart';
+import 'package:uuid/uuid.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 
 import '../../Controller/InputCalc.dart';
@@ -130,6 +131,8 @@ class _KalkulatorState extends State<Kalkulator> {
     if (!_isActive) {
       _isActive = true;
       _timer = Timer.periodic(Duration(seconds: 1), _tick);
+      // _runningMinutes = _minutes;
+      // _runningSeconds = _seconds;
     }
   }
 
@@ -214,8 +217,8 @@ class _KalkulatorState extends State<Kalkulator> {
     return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  // String _formatTime() {
-  //   return '$_minutes:${_seconds.toString().padLeft(2, '0')}';
+  // String _formatTime(int minutes, int seconds) {
+  //   return '$minutes:${seconds.toString().padLeft(2, '0')}';
   // }
 
   TextEditingController _minutesController = TextEditingController();
@@ -307,6 +310,7 @@ class _KalkulatorState extends State<Kalkulator> {
     super.initState();
     initPlugin();
     initializeToken();
+    sendDataToAPI();
     fetchData(widget.selectedDate);
     token = widget.token;
     matchData = widget.matchData;
@@ -345,21 +349,42 @@ class _KalkulatorState extends State<Kalkulator> {
   }
 
   List<String> selectedValues = [];
-  String _handleButtonPressNumber(String value) {
-    // setState(() {
-    //   value2 = newValue;
-    // });
-    // return newValue;
+  // String _handleButtonPressNumber2(String value, String gelapTerang) {
+  //   String namaTim = (gelapTerang == '${matchData.terang}') ? '${matchData.terang}' : '${matchData.gelap}';
+  //   combinedValue = '$namaTim #' + '$value';
+  //   // setState(() {
+  //   //   value2 = newValue;
+  //   // });
+  //   // return newValue;
+  //   setState(() {
+  //     if (selectedValues.contains(combinedValue)) {
+  //       selectedValues.remove(combinedValue);
+  //     } else {
+  //       selectedValues.add(combinedValue);
+  //       value2 = value;
+  //     }
+  //   });
+  //   return combinedValue;
+  // }
+
+  String combinedValue = '';
+  String? gelapTerang1;
+  String? namaTim;
+  void _handleButtonPressNumber(String value, String gelapTerang) {
+    gelapTerang1 = gelapTerang;
+    namaTim = (gelapTerang == 'terang') ? '${matchData.terang}' : '${matchData.gelap}';
+    combinedValue = '$namaTim #$value';
+
     setState(() {
-      if (selectedValues.contains(value)) {
-        selectedValues.remove(value);
+      if (selectedValues.contains(combinedValue)) {
+        selectedValues.remove(combinedValue);
       } else {
-        selectedValues.add(value);
+        selectedValues.add(combinedValue);
         value2 = value;
       }
     });
-    return value;
   }
+
 
   void _handleSelection(String value) {
     setState(() {
@@ -373,32 +398,68 @@ class _KalkulatorState extends State<Kalkulator> {
       selectedValues.clear();
       selectedValues2.clear();
       _fulfillmentText = '';
+      combinedValue = '';
       value1 = '';
       value2 = '';
     });
   }
 
   bool isOk = false;
+
+  DateTime? timestamp;
+  int startMinutes = 0;
+  int startSeconds = 0;
+  int elapsedMinutes = 0;
+  int elapsedSeconds = 0;
+  int _lastElapsedTime = 0;
+
   void _handleOkButtonPress() {
     setState(() {
-      isOk = true;
-      _handleButtonPressNumber(value2);
-      _handleButtonPress(value1);
-      // if(selectedValues2.contains(selectedValues2) || selectedValues.contains(selectedValues)){
-      //   isOk = false;
-      //   selectedValues2.remove(selectedValues2);
-      //   selectedValues.remove(selectedValues);
-      // }
-      // selectedValues = selectedValues as List<String>;
-      // selectedValues2 = selectedValues2 as List<String>;
+      if (!isOk) {
+        // Tombol OK ditekan pertama kali
+        startMinutes = _minutes;
+        startSeconds = _seconds;
+        isOk = true;
+      } else {
+        // Tombol OK ditekan lagi
+        //_pauseTimer(); // Hentikan timer
+        int elapsedSeconds = (startMinutes - _minutes) * 60 + (startSeconds - _seconds);
+        isOk = false;
+        String formattedTime = _formatTime(elapsedSeconds);
+        print('Selisih waktu: $formattedTime');
+      }
+
+      //isOk = true;
+      _handleButtonPressNumber;
+      _handleButtonPress;
+      _handleSelection;
+      _lastElapsedTime = _start;
+      sendDataToAPI();
+
+      if(!isOk){
+        Future.delayed(Duration(seconds: 3), () {
+          setState(() {
+            isOk = false;
+            value1 = '';
+            value2 = '';
+            combinedValue = '';
+            selectedValues.clear();
+            selectedValues2.clear();
+          });
+        });
+      }
+      if(!isOk) {
+        print('Selisih waktu: ${_formatTime(elapsedMinutes)}');
+      }
     });
-    //isOk = false;
-    // setState(() {
-    //   isOk = true;
-    //  // _handleButtonPress(value1);
-    // });
-    // _handleClearButtonPress();
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text('OK button pressed'),
+    //     duration: Duration(seconds: 2), // Durasi tampilan Snackbar
+    //   ),
+    // );
   }
+
 
   // bool isConfigurationDataInputted = false;
   // void _handleConfigurationDataInput() {
@@ -499,6 +560,67 @@ class _KalkulatorState extends State<Kalkulator> {
     }
   }
 
+  void sendDataToAPI() async {
+    final String apiUrl = 'https://sportkit.id/friendship/api/v1/post_score.php';
+
+    final uuid = Uuid();
+    final uniqueId = uuid.v4();
+
+    int minutes = _lastElapsedTime ~/ 60;
+    int remainingSeconds = _lastElapsedTime % 60;
+
+    // Data yang akan dikirim dalam format JSON
+    if (widget.id != null &&
+        widget.id.isNotEmpty &&
+        gelapTerang1 != null &&
+        gelapTerang1!.isNotEmpty &&
+        namaTim != null &&
+        namaTim!.isNotEmpty &&
+        value2 != null &&
+        value2.isNotEmpty &&
+        value1 != null &&
+        value1.isNotEmpty &&
+        selectedOption != null &&
+        selectedOption.isNotEmpty &&
+        uniqueId != null &&
+        uniqueId.isNotEmpty) {
+      final Map<String, dynamic> postData = {
+        "event_id": widget.id,
+        "tim": gelapTerang1,
+        "klub": namaTim,
+        "nomor": value2,
+        "action": value1,
+        "minute": '$minutes:${remainingSeconds.toString().padLeft(2, '0')}',
+        "quarter": selectedOption,
+        "uniqid": uniqueId,
+        "insert_time": DateTime.now().toString(),
+        "owner_id": "owner_id_value",
+      };
+
+      try {
+        final response = await http.post(
+          Uri.parse(apiUrl),
+          headers: getHeaders(),
+          body: jsonEncode(postData),
+        );
+
+        if (response.statusCode == 200) {
+          // Permintaan berhasil
+          print("Data berhasil dikirim ke API");
+          print(postData);
+        } else {
+          // Permintaan gagal
+          print("Gagal mengirim data ke API: ${response.statusCode}");
+        }
+      } catch (error) {
+        print("Terjadi kesalahan saat mengirim data ke API: $error");
+      }
+    } else {
+      print("Terdapat nilai yang null atau kosong (''). Data tidak dikirim.");
+    }
+  }
+
+
 
   Future<void> initPlugin() async {
     _recorderStatus = _recorder.status.listen((status) {
@@ -592,63 +714,127 @@ class _KalkulatorState extends State<Kalkulator> {
     DetectIntentResponse dataIndo = await dialogflow.detectIntent(text, 'id-ID');
     String fulfillmentTextIndo = dataIndo.queryResult.fulfillmentText;
 
-    String? NPStringTerang = matchData.terangPemain; // String dengan angka-angka yang dipisahkan koma
-    List<int> dataIntTerang = NPStringTerang!.split(',').map((e) => int.parse(e)).toList();
-    print(dataIntTerang);
+    List<String> parts = fulfillmentTextIndo.split(' ');
+    value2 = parts[1];
+    gelapTerang1 = parts[0];
 
-    String? NPStringGelap = matchData.gelapPemain; // String dengan angka-angka yang dipisahkan koma
-    List<int> dataIntGelap = NPStringGelap!.split(',').map((e) => int.parse(e)).toList();
+    int minutes = _start ~/ 60;
+    int remainingSeconds = _start % 60;
 
     String messageTerang = '';
+    String messageGelap = '';
+
+    Map<String, String> responseMappingTerang = {
+      'terang $value2 cetak poin 1': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +1',
+      'Tim terang $value2, 1 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +1',
+      'terang $value2 cetak poin 2': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +2',
+      'Tim terang $value2, 2 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +2',
+      'terang $value2 cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +3',
+      'Tim terang $value2, 3 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +3',
+      'terang $value2 gagal cetak poin 1': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +1',
+      'Tim terang $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +1',
+      'terang $value2 gagal cetak poin 2': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +2',
+      'Tim terang $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +2',
+      'terang $value2 gagal cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +3',
+      'Tim terang $value2, 3 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +3'
+    };
+
+    Map<String, String> responseMappingGelap = {
+      'gelap $value2 cetak poin 1': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +1',
+      'Tim gelap $value2, 1 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +1',
+      'gelap $value2 cetak poin 2': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +2',
+      'Tim gelap $value2, 2 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +2',
+      'gelap $value2 cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +3',
+      'Tim gelap $value2, 3 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +3',
+      'gelap $value2 gagal cetak poin 1': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +1',
+      'Tim gelap $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +1',
+      'gelap $value2 gagal cetak poin 2': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +2',
+      'Tim gelap $value2, 2 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +2',
+      'gelap $value2 gagal cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +3',
+      'Tim gelap $value2, 3 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +3',
+    };
+
+    //for (String key in responseMappingTerang.keys) {
+      // if (fulfillmentTextIndo.startsWith(key)) {
+      //   // Menemukan respons yang cocok
+      //   value1 = responseMappingTerang[key]!.split('\n')[2].trim(); // Mengambil "Made +1" sebagai action
+      //   messageTerang = responseMappingTerang[key]!;
+      //   print('message terang: $key');
+      //   break;
+      // }
+    //}
+
+    namaTim = (gelapTerang1 == 'terang') ? '${matchData.terang}' : '${matchData.gelap}';
+
+    print('teks: $fulfillmentTextIndo');
+
+    for (String key in responseMappingTerang.keys) {
+      if (fulfillmentTextIndo.startsWith(key)) {
+        value1 = responseMappingTerang[key]!.split('\n')[2].trim(); // Mengambil "Made +1" dll. sebagai action
+        messageTerang = responseMappingTerang[key]!;
+        print('Pesanan yang cocok: $key');
+        //break;
+      }
+    }
+
+    for (String key in responseMappingGelap.keys) {
+      if (fulfillmentTextIndo.startsWith(key)) {
+        value1 = responseMappingGelap[key]!.split('\n')[2].trim(); // Mengambil "Made +1" dll. sebagai action
+        messageGelap = responseMappingGelap[key]!;
+        print('Pesanan yang cocok: $key');
+        //break;
+      }
+    }
+
+    sendDataToAPI();
+
+    //print('teksnya mapping: $responseMappingTerang');
+
+    messageTerang = responseMappingTerang[fulfillmentTextIndo] ?? '';
+    print('response yang sudah di mapping: $messageTerang');
+
+    messageGelap = responseMappingGelap[fulfillmentTextIndo] ?? '';
+    print('response yang sudah di mapping: $messageGelap');
 
     if(fulfillmentTextIndo.isNotEmpty){
-      // Message botMessage = Message(
-      //   text: fulfillmentTextIndo,
-      //   type: false,
-      // );
-      //
-      // setState(() {
-      //   _fulfillmentText = fulfillmentTextIndo;
-      //   _messages.insert(0, botMessage);
-      // });
+      if(gelapTerang1 == "terang"){
+        Message botMessage = Message(
+          //text: fulfillmentTextIndo,
+          text: messageTerang,
+          type: false,
+        );
 
-      for(int i = 0; i<dataIntTerang.length; i ++){
-        if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} cetak poin 1'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Made +1';
-          print(messageTerang);
-          Message botMessage = Message(
-            text: messageTerang,
-            type: false,
-          );
+        setState(() {
+          //_fulfillmentText = fulfillmentTextIndo;
+          _fulfillmentText = messageTerang;
+          _messages.insert(0, botMessage);
+        });
 
-          setState(() {
-            _fulfillmentText = fulfillmentTextIndo;
-            _messages.insert(0, botMessage);
-          });
-        }
-        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} cetak poin 2'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Made +2';
-        }
-        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} cetak poin 3'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Made +3';
-        }
-        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} gagal cetak poin 1'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Missed +1';
-        }
-        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} gagal cetak poin 2'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Missed +2';
-        }
-        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} gagal cetak poin 3'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Missed +3';
-        }
-        else if(fulfillmentTextIndo == 'Terang ${dataIntTerang[i]} asis'){
-          messageTerang = '${matchData.terang} #${dataIntTerang[i]} Assist';
-        }
+      } else {
+        Message botMessage = Message(
+          //text: fulfillmentTextIndo,
+          text: messageGelap,
+          type: false,
+        );
+
+        setState(() {
+          //_fulfillmentText = fulfillmentTextIndo;
+          _fulfillmentText = messageGelap;
+          _messages.insert(0, botMessage);
+        });
       }
 
 
+      // if (messageTerang.isNotEmpty) {
+      //   Message terangMessage = Message(
+      //     text: messageTerang,
+      //     type: false,
+      //   );
+      //   _messages.insert(0, terangMessage);
+      // }
+
       // Simpan respons ke database
-      await DatabaseManager().saveResponseToDatabase(fulfillmentTextIndo);
+      //await DatabaseManager().saveResponseToDatabase(fulfillmentTextIndo);
 
     }
   }
@@ -773,7 +959,7 @@ class _KalkulatorState extends State<Kalkulator> {
           padding: EdgeInsets.all(5.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
+            //mainAxisAlignment: MainAxisAlignment.center,
             children: [
               //timer
               Row(
@@ -814,7 +1000,7 @@ class _KalkulatorState extends State<Kalkulator> {
                       child: Center(
                         child: Text(
                           selectedOption,
-                          style: TextStyle(color: SportkitColors.black),
+                          style: TextStyle(color: SportkitColors.black, fontWeight: FontWeight.bold, fontSize: 20),
                         ),
                       ),// Ganti warna latar belakang bagian depan
                     ),
@@ -842,7 +1028,7 @@ class _KalkulatorState extends State<Kalkulator> {
                           },
                           child: Text(
                             _formatTime(_start),
-                            style: TextStyle(fontSize: 24, color: SportkitColors.lightGreen),
+                            style: TextStyle(fontSize: 24, color: SportkitColors.lightGreen, fontWeight: FontWeight.bold, fontFamily: 'DotMatrix'),
                           ),
                         ),
                       ),
@@ -904,7 +1090,7 @@ class _KalkulatorState extends State<Kalkulator> {
               Stack(
                 children: [
                   Container(
-                    alignment: Alignment.center,
+                    //alignment: Alignment.center,
                     height: 110,
                     width: 657,
                     decoration: BoxDecoration(
@@ -913,11 +1099,16 @@ class _KalkulatorState extends State<Kalkulator> {
                   ),
                   Positioned(
                     // Letakkan Text widget untuk menampilkan hasil dari fungsi handleSubmitted
-                    top: 0,
-                    left: 0,
-                    child: Text(
-                      _fulfillmentText, // Tampilkan hasil di sini
-                      style: TextStyle(fontSize: 20, color: SportkitColors.white),
+                    top: 5,
+                    left: 15,
+                    child: Column(
+                      children: [
+                        // Icon(Icons.check_circle, color: SportkitColors.green,),
+                        Text(
+                          _fulfillmentText, // Tampilkan hasil di sini
+                          style: GoogleFonts.poppins(fontSize: 20, color: SportkitColors.white),
+                        ),
+                      ],
                     ),
                   ),
                   // ListView.builder(
@@ -928,16 +1119,33 @@ class _KalkulatorState extends State<Kalkulator> {
                   //     );
                   //   },
                   // ),
-                  if(isOk) Positioned(
-                    child: Column(
+                  Positioned(
+                    top: 5,
+                    left: 15,
+                    child: isOk
+                        ? Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        //Text(selectedOption),
-                        Text(selectedValues.join()),
-                        Text(selectedValues2.join()),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children:[
+                            Icon(Icons.check_circle, color: SportkitColors.green, size: 30,),
+                            Padding(padding: EdgeInsets.all(8)),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('$selectedOption ${_formatTime(_lastElapsedTime)}', style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
+                                Text(selectedValues.join(), style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
+                                Text(selectedValues2.join(), style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
+                              ],
+                            ),
+                          ],
+                        ),
                       ],
-                    ),
-                  ) else Container(),
-    //if(!isOk) Container(),
+                    )
+                        : SizedBox(), // Jika false, tidak menampilkan apapun
+                  ),
+                  //if(!isOk) Container(),
                 ],
               ),
               // TextField(
@@ -956,8 +1164,8 @@ class _KalkulatorState extends State<Kalkulator> {
                   color: SportkitColors.black, borderRadius: BorderRadius.circular(1),
                 ),
                 child: Text(
-                  _handleButtonPressNumber(value2),
-                  style: TextStyle(color: Colors.white),
+                  combinedValue,
+                  style: TextStyle(color: SportkitColors.green,  fontFamily: 'DotMatrix', fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(padding: EdgeInsets.all(3)),
@@ -977,7 +1185,7 @@ class _KalkulatorState extends State<Kalkulator> {
                                     padding: EdgeInsets.all(3),
                                     child: ReusableButton1(
                                       text: angka,
-                                      onPressed: () => _handleButtonPressNumber(angka),
+                                      onPressed: () => _handleButtonPressNumber(angka, 'terang'),
                                       value: angka,
                                       backgroundColor: widget.selectedColor2,
                                       textColor: widget.selectedColor1,
@@ -1002,7 +1210,7 @@ class _KalkulatorState extends State<Kalkulator> {
                               padding: EdgeInsets.all(3),
                               child: ReusableButton1(
                                 text: angka,
-                                onPressed: () => _handleButtonPressNumber(angka),
+                                onPressed: () => _handleButtonPressNumber(angka, 'gelap'),
                                 value: angka,
                                 backgroundColor: widget.selectedColor4,
                                 textColor: widget.selectedColor3,
@@ -1026,7 +1234,7 @@ class _KalkulatorState extends State<Kalkulator> {
                 ),
                 child: Text(
                     _handleButtonPress(value1),
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: SportkitColors.green,  fontFamily: 'DotMatrix', fontWeight: FontWeight.bold),
                 ),
               ),
               Padding(padding: EdgeInsets.all(3)),
@@ -1282,7 +1490,7 @@ class _KalkulatorState extends State<Kalkulator> {
                             padding: EdgeInsets.all(3.0), // Set the left margin here
                             child: TextField(
                               style: TextStyle(color: Colors.white),
-                              enabled: false,
+                              enabled: true,
                               controller: _textController,
                               onSubmitted: handleSubmitted, // Memanggil handleSubmitted pada instance recording
                               decoration: InputDecoration(

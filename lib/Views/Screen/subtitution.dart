@@ -41,7 +41,7 @@ class _SubtitutionState extends State<Subtitution> {
   List<bool> isButtonActiveList2 = [];
   List<String> angkaList = [''];
   List<String> angkaList2 = [''];
-  String selectedDate = '2023-06-25';
+  String selectedDate = '';
 
   @override
   void initState() {
@@ -289,7 +289,7 @@ class _SubtitutionState extends State<Subtitution> {
                         selectedColor1: Colors.white,
                         selectedColor2: Colors.blue,
                         selectedColor3: Colors.red,
-                        selectedColor4: Colors.black, data: {}, id: widget.id, selectedDate: selectedDate, activeTerang: activeTerang, activeGelap: activeGelap,
+                        selectedColor4: Colors.black, data: {}, id: widget.id, selectedDate: widget.selectedDate, activeTerang: activeTerang, activeGelap: activeGelap,
                         // onColorsChanged: (colors) {
                         //   setState(() {
                         //     _selectedColors = colors;
