@@ -11,28 +11,25 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sound_stream/sound_stream.dart';
 import 'package:sportkit_statistik/Controller/configuration_provider.dart';
+import 'package:sportkit_statistik/Controller/subtitution_provider.dart';
+import 'package:sportkit_statistik/Views/Screen/log.dart';
+import 'package:sportkit_statistik/Views/Screen/statistik.dart';
 import 'package:sportkit_statistik/Views/Screen/subtitution.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:timer_count_down/timer_count_down.dart';
-import 'package:sportkit_statistik/Router/routes_name.dart';
 import 'package:sportkit_statistik/Utils/Colors.dart';
 import 'package:get/get.dart';
 import 'package:sportkit_statistik/Views/Component/reusable_button_calc.dart';
 import 'package:dialogflow_grpc/generated/google/cloud/dialogflow/v2beta1/session.pb.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:sportkit_statistik/Views/Screen/konfigurasi.dart';
-import 'package:sportkit_statistik/Database/db_dialogflow.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:vibration/vibration.dart';
 
-
-import '../../Controller/InputCalc.dart';
 import '../../Controller/ViewCalc.dart';
 import '../../Controller/buuttonStatus_provider.dart';
 import '../../Controller/matchData_provider.dart';
 import '../../Controller/timer_provider.dart';
-import '../../Controller/userData_provider.dart';
 import '../../Models/data_inputConfiguration.dart';
 import '../../Models/data_pertandingan.dart';
 import '../Component/reusable_button1.dart';
@@ -74,7 +71,7 @@ class Kalkulator extends StatefulWidget {
 
 class _KalkulatorState extends State<Kalkulator> {
 
-  final InputController _inputController = InputController();
+  //final InputController _inputController = InputController();
   final ViewController v = Get.put(ViewController());
   String selectedOption = 'Q1'; // Nilai awal pilihan waktu timer
 
@@ -100,6 +97,12 @@ class _KalkulatorState extends State<Kalkulator> {
     Colors.red,
     Colors.black,
   ];
+
+  void updateButtonState() {
+    setState(() {
+      // Lakukan perubahan pada state tombol di sini
+    });
+  }
 
   void _openInputConfiguration() async {
     List<Color>? newColors = await Navigator.of(context).push(
@@ -163,52 +166,6 @@ class _KalkulatorState extends State<Kalkulator> {
       _start;
     });
   }
-
-  // StreamController<int> _timerStreamController = StreamController<int>();
-  //
-  // void _startTimer() {
-  //   if (_minutes > 0 || _seconds > 0) {
-  //     setState(() {
-  //       _isRunning = true;
-  //     });
-  //
-  //     int totalSeconds = _minutes * 60 + _seconds;
-  //     _timerStreamController = StreamController<int>();
-  //     int remainingSeconds = totalSeconds; // Initialize remainingSeconds
-  //
-  //     Stream<int> countdownStream = Stream.periodic(
-  //       Duration(seconds: 1),
-  //           (x) {
-  //         remainingSeconds -= 1; // Decrement remainingSeconds
-  //         return remainingSeconds;
-  //       },
-  //     ).takeWhile((count) => count >= 0);
-  //
-  //     countdownStream.listen((remainingSeconds) {
-  //       _timerStreamController.sink.add(remainingSeconds);
-  //       if (remainingSeconds <= 0) {
-  //         _pauseTimer(); // Call this to stop the timer when it reaches 0.
-  //       }
-  //     });
-  //   }
-  // }
-  //
-  //
-  // void _pauseTimer() {
-  //   setState(() {
-  //     _isRunning = false;
-  //   });
-  //   _timerSubscription.cancel();
-  // }
-  //
-  // void _resetTimer() {
-  //   setState(() {
-  //     _isRunning = false;
-  //     _minutes = 0;
-  //     _seconds = 0;
-  //   });
-  //   _timerSubscription.cancel();
-  // }
 
 
   String _formatTime(int seconds) {
@@ -316,20 +273,9 @@ class _KalkulatorState extends State<Kalkulator> {
     matchData = widget.matchData;
     id = widget.id;
     fetchDataSubtitution(id);
+    buildButtons();
     final configuration = Provider.of<ConfigurationModel>(context, listen: false);
     _start = configuration.time * 60;
-    // int _start = configuration.time;
-    // _timerStream = Stream<int>.periodic(
-    //   Duration(seconds: 1),
-    //       (x) => _minutes * 60 + _seconds - x - 1,
-    // ).takeWhile((count) => count > 0);
-    // _timerSubscription = _timerStream.listen((remainingSeconds) {
-    //   setState(() {
-    //     if (remainingSeconds <= 0) {
-    //       _isRunning = false;
-    //     }
-    //   });
-    // });
   }
 
   List<String> selectedValues2 = [];
@@ -338,9 +284,12 @@ class _KalkulatorState extends State<Kalkulator> {
     //   value1 = newValue;
     // });
     setState(() {
-      if (selectedValues2.contains(newValue)) {
+      if (selectedValues2.contains(newValue) && selectedValues2.isNotEmpty) {
+        selectedValues2.clear();
         selectedValues2.remove(newValue);
+        //selectedValues2.removeAt(0);
       } else {
+        //selectedValues2.clear();
         selectedValues2.add(newValue);
         value1 = newValue;
       }
@@ -349,36 +298,22 @@ class _KalkulatorState extends State<Kalkulator> {
   }
 
   List<String> selectedValues = [];
-  // String _handleButtonPressNumber2(String value, String gelapTerang) {
-  //   String namaTim = (gelapTerang == '${matchData.terang}') ? '${matchData.terang}' : '${matchData.gelap}';
-  //   combinedValue = '$namaTim #' + '$value';
-  //   // setState(() {
-  //   //   value2 = newValue;
-  //   // });
-  //   // return newValue;
-  //   setState(() {
-  //     if (selectedValues.contains(combinedValue)) {
-  //       selectedValues.remove(combinedValue);
-  //     } else {
-  //       selectedValues.add(combinedValue);
-  //       value2 = value;
-  //     }
-  //   });
-  //   return combinedValue;
-  // }
 
   String combinedValue = '';
   String? gelapTerang1;
   String? namaTim;
   void _handleButtonPressNumber(String value, String gelapTerang) {
+
     gelapTerang1 = gelapTerang;
     namaTim = (gelapTerang == 'terang') ? '${matchData.terang}' : '${matchData.gelap}';
     combinedValue = '$namaTim #$value';
 
     setState(() {
       if (selectedValues.contains(combinedValue)) {
+        selectedValues.clear();
         selectedValues.remove(combinedValue);
       } else {
+        //selectedValues.clear();
         selectedValues.add(combinedValue);
         value2 = value;
       }
@@ -412,61 +347,72 @@ class _KalkulatorState extends State<Kalkulator> {
   int elapsedMinutes = 0;
   int elapsedSeconds = 0;
   int _lastElapsedTime = 0;
+  String option = '';
 
   void _handleOkButtonPress() {
+
+    option = selectedOption;
+
     setState(() {
       if (!isOk) {
         // Tombol OK ditekan pertama kali
         startMinutes = _minutes;
         startSeconds = _seconds;
-        isOk = true;
-      } else {
-        // Tombol OK ditekan lagi
-        //_pauseTimer(); // Hentikan timer
-        int elapsedSeconds = (startMinutes - _minutes) * 60 + (startSeconds - _seconds);
-        isOk = false;
-        String formattedTime = _formatTime(elapsedSeconds);
-        print('Selisih waktu: $formattedTime');
+        //isOk = true;
+        //isOk = false;
       }
+      // else {
+      //   // Tombol OK ditekan lagi
+      //   //_pauseTimer(); // Hentikan timer
+      //   int elapsedSeconds = (startMinutes - _minutes) * 60 + (startSeconds - _seconds);
+      //   isOk = false;
+      //   String formattedTime = _formatTime(elapsedSeconds);
+      //   print('Selisih waktu: $formattedTime');
+      // }
 
-      //isOk = true;
-      _handleButtonPressNumber;
-      _handleButtonPress;
-      _handleSelection;
+      isOk = true;
+      // _handleButtonPressNumber;
+      // _handleButtonPress;
+      // _handleSelection;
       _lastElapsedTime = _start;
       sendDataToAPI();
 
+      // if(selectedValues.isNotEmpty || selectedValues2.isNotEmpty) {
+      //   //isOk = false;
+      //   nomor = '';
+      //   action = '';
+      //   quarter = '';
+      //   klub = '';
+      // }
       if(!isOk){
-        Future.delayed(Duration(seconds: 3), () {
-          setState(() {
-            isOk = false;
-            value1 = '';
-            value2 = '';
-            combinedValue = '';
-            selectedValues.clear();
-            selectedValues2.clear();
+        if(selectedValues.isNotEmpty || selectedValues2.isNotEmpty) {
+          // selectedValues2.clear();
+          // selectedValues.clear();
+          Timer(Duration(seconds: 3), () {
+            setState(() {
+              isOk = false;
+              value1 = '';
+              value2 = '';
+              combinedValue = '';
+              selectedValues.clear();
+              selectedValues2.clear();
+              _lastElapsedTime = 0;
+              option = '';
+            });
           });
-        });
+        }
       }
       if(!isOk) {
         print('Selisih waktu: ${_formatTime(elapsedMinutes)}');
       }
     });
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //   SnackBar(
-    //     content: Text('OK button pressed'),
-    //     duration: Duration(seconds: 2), // Durasi tampilan Snackbar
-    //   ),
-    // );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Data terkirim'),
+        duration: Duration(seconds: 2), // Durasi tampilan Snackbar
+      ),
+    );
   }
-
-
-  // bool isConfigurationDataInputted = false;
-  // void _handleConfigurationDataInput() {
-  //   setState(() {
-  //     isConfigurationDataInputted = true;
-  //   });
-  // }
 
   void initializeToken() {
     token = widget.token;
@@ -479,33 +425,24 @@ class _KalkulatorState extends State<Kalkulator> {
   }
 
   List<MatchData> matchDataList = [];
-  //late Map<String, dynamic> matchDataList;
+
   void fetchData(String selectedDate) async {
     final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=$selectedDate');
     final response = await http.get(url, headers: getHeaders());
 
-    //print(response);
 
     if (response.statusCode == 200) {
       final responseData = response.body;
       final _responseData = json.decode(response.body);
-      //final List<dynamic> responseData = json.decode(response.body);
-      //List<Map<String, dynamic>> data = json.decode(responseData);
+
       ApiResponse apiResponse = ApiResponse.fromJson(_responseData);
 
       try {
         //print("matchDataList: $responseData");
         matchData = apiResponse.data.firstWhere((data) => data.id == id);
 
-        // Isi formulir dengan data yang sesuai
-        // setState(() {
-        //   _nameController.text = matchData.terang ?? '';
-        //   // Isi formulir dengan data lainnya sesuai kebutuhan
-        // });
       } catch (e) {
-        // Handle the case where no match was found
         print("No element found with the specified ID: $id");
-        // You can assign a default value or take appropriate action here.
       }
 
       for (var matchData in apiResponse.data) {
@@ -526,39 +463,38 @@ class _KalkulatorState extends State<Kalkulator> {
 
   List<dynamic> terangMain = [];
   List<dynamic> gelapMain = [];
-  void fetchDataSubtitution(String id) async {
+  Future<dynamic> fetchDataSubtitution(String id) async {
     final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_pemain.php?event_id=$id&action=subtitution');
     final response = await http.get(url, headers: getHeaders());
 
     final responseJson = json.decode(response.body);
 
-    // Pastikan respons memiliki status true sebelum melanjutkan
     if (responseJson['status'] == true) {
       final data = responseJson['data'];
-
-      // Parse data pemain terang_main
-      //final terangMain= json.decode(data['terang_main']);
-      //terangMain = List<int>.from(json.decode(data['terang_main']));
-
-      // Parse data pemain gelap_main
-      //final gelapMain = json.decode(data['gelap_main']);
 
       final terangMainString = data['terang_main'];
       final gelapMainString = data['gelap_main'];
 
-      terangMain = terangMainString.split(',').map((e) => int.parse(e)).toList();
-      gelapMain = gelapMainString.split(',').map((e) => int.parse(e)).toList();
 
+      terangMain = terangMainString.split(',').toList();
+      gelapMain = gelapMainString.split(',').toList();
 
-      // Sekarang, Anda memiliki data pemain terang_main dan gelap_main dalam bentuk List<int>
       print('Pemain Terang Main: $terangMain');
       print('Pemain Gelap Main: $gelapMain');
     } else {
-      // Status false, tangani kesalahan jika diperlukan
       final message = responseJson['message'];
       print('Error: $message');
     }
+    return;
   }
+
+  int minutes = 0;
+  int remainingSeconds = 0;
+
+  String nomor = '';
+  String action = '';
+  String klub = '';
+  String quarter = '';
 
   void sendDataToAPI() async {
     final String apiUrl = 'https://sportkit.id/friendship/api/v1/post_score.php';
@@ -566,8 +502,13 @@ class _KalkulatorState extends State<Kalkulator> {
     final uuid = Uuid();
     final uniqueId = uuid.v4();
 
-    int minutes = _lastElapsedTime ~/ 60;
-    int remainingSeconds = _lastElapsedTime % 60;
+    minutes = _lastElapsedTime ~/ 60;
+    remainingSeconds = _lastElapsedTime % 60;
+
+    nomor = value2;
+    action = value1;
+    klub = namaTim!;
+    quarter = selectedOption;
 
     // Data yang akan dikirim dalam format JSON
     if (widget.id != null &&
@@ -581,17 +522,17 @@ class _KalkulatorState extends State<Kalkulator> {
         value1 != null &&
         value1.isNotEmpty &&
         selectedOption != null &&
-        selectedOption.isNotEmpty &&
+        selectedOption!.isNotEmpty &&
         uniqueId != null &&
         uniqueId.isNotEmpty) {
       final Map<String, dynamic> postData = {
         "event_id": widget.id,
         "tim": gelapTerang1,
-        "klub": namaTim,
-        "nomor": value2,
-        "action": value1,
+        "klub": klub,
+        "nomor": nomor,
+        "action": action,
         "minute": '$minutes:${remainingSeconds.toString().padLeft(2, '0')}',
-        "quarter": selectedOption,
+        "quarter": quarter,
         "uniqid": uniqueId,
         "insert_time": DateTime.now().toString(),
         "owner_id": "owner_id_value",
@@ -648,9 +589,6 @@ class _KalkulatorState extends State<Kalkulator> {
 
   void handleStream() async {
 
-    // final myInstance = recording();
-    // myInstance.handleSubmitted();
-
     bool _isRecording = false;
 
     bool _isAvailable = await _speech.initialize();
@@ -672,17 +610,10 @@ class _KalkulatorState extends State<Kalkulator> {
           handleSubmitted(transcript);
         }
       },
-      // onError: (error) {
-      //   // Handle error
-      // },
       localeId: localeId, // bahasa yang digunakan
       cancelOnError: true, // Optional, cancel listening on error
     ) as StreamSubscription<stt.SpeechResultListener>?;
 
-
-    // setState(() {
-    //   _isListening = true;
-    // });
   }
 
   void stopStream() async {
@@ -704,12 +635,8 @@ class _KalkulatorState extends State<Kalkulator> {
 
 
     setState(() {
-      _messages.clear(); // Hapus semua pesan sebelumnya
-      //_messages.insert(0, message);
+      _messages.clear();
     });
-
-    // DetectIntentResponse dataEnglish = await dialogflow.detectIntent(text, 'en-US');
-    // String fulfillmentText = dataEnglish.queryResult.fulfillmentText;
 
     DetectIntentResponse dataIndo = await dialogflow.detectIntent(text, 'id-ID');
     String fulfillmentTextIndo = dataIndo.queryResult.fulfillmentText;
@@ -723,20 +650,45 @@ class _KalkulatorState extends State<Kalkulator> {
 
     String messageTerang = '';
     String messageGelap = '';
+    print('teks: $fulfillmentTextIndo');
 
     Map<String, String> responseMappingTerang = {
       'terang $value2 cetak poin 1': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +1',
-      'Tim terang $value2, 1 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +1',
+      'Tim terang $value2, 1 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +1',
       'terang $value2 cetak poin 2': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +2',
-      'Tim terang $value2, 2 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +2',
+      'Tim terang $value2, 2 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +2',
       'terang $value2 cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +3',
-      'Tim terang $value2, 3 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMade +3',
+      'Tim terang $value2, 3 cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMade +3',
       'terang $value2 gagal cetak poin 1': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +1',
-      'Tim terang $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +1',
+      'Tim terang $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +1',
       'terang $value2 gagal cetak poin 2': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +2',
-      'Tim terang $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +2',
+      'Tim terang $value2, 1 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +2',
       'terang $value2 gagal cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +3',
-      'Tim terang $value2, 3 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +3'
+      'Tim terang $value2, 3 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nMissed +3',
+      'Tim terang $value2 rebound Bertahan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nOffensive Rebound',
+      'terang $value2 rebound Bertahan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nOffensive Rebound',
+      'Tim terang $value2 tidak supportive': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nUnsportmanship Foul',
+      'terang $value2 tidak supportive': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nUnsportmanship Foul',
+      'Tim terang $value2 tidak suportif': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nUnsportmanship Foul',
+      'terang $value2 tidak suportif': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nUnsportmanship Foul',
+      'Tim terang $value2 teknikal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nTechnical Foul',
+      'terang $value2 teknikal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nTechnical Foul',
+      'Tim terang $value2 technical': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nTechnical Foul',
+      'terang $value2 technical': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nTechnical Foul',
+      'Tim terang $value2 personal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nPersonal Foul',
+      'terang $value2 personal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nPersonal Foul',
+      'Tim terang $value2 mencuri': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nSteal',
+      'terang $value2 mencuri': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nSteal',
+      'Tim terang $value2 memblok': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nBlock',
+      'terang $value2 memblok': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nBlock',
+      'Tim terang $value2 menyerahkan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nTurn Over',
+      'terang $value2 menyerahkan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nTurn Over',
+      'Tim terang $value2 rebound serangan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nOffensive Rebound',
+      'terang $value2 rebound serangan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nOffensive Rebound',
+      'Tim terang $value2 asis': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nAssist',
+      'terang $value2 asis': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nAssist',
+      'Tim terang $value2 bantu': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nAssist',
+      'terang $value2 bantu': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.terang} #$value2 \nAssist',
     };
 
     Map<String, String> responseMappingGelap = {
@@ -752,43 +704,57 @@ class _KalkulatorState extends State<Kalkulator> {
       'Tim gelap $value2, 2 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +2',
       'gelap $value2 gagal cetak poin 3': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +3',
       'Tim gelap $value2, 3 gagal cetak poin': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nMissed +3',
+      'Tim gelap $value2 rebound bertahan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nOffensive Rebound',
+      'gelap $value2 rebound bertahan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nOffensive Rebound',
+      'Tim gelap $value2 tidak supportive': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nUnsportmanship Foul',
+      'gelap $value2 tidak supportive': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nUnsportmanship Foul',
+      'Tim gelap $value2 tidak suportif': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nUnsportmanship Foul',
+      'gelap $value2 tidak suportif': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nUnsportmanship Foul',
+      'Tim gelap $value2 teknikal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nTechnical Foul',
+      'gelap $value2 teknikal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nTechnical Foul',
+      'Tim gelap $value2 technical': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nTechnical Foul',
+      'gelap $value2 technical': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nTechnical Foul',
+      'Tim gelap $value2 personal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nPersonal Foul',
+      'gelap $value2 personal': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nPersonal Foul',
+      'Tim gelap $value2 mencuri': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nSteal',
+      'gelap $value2 mencuri': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nSteal',
+      'Tim gelap $value2 memblok': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nBlock',
+      'gelap $value2 memblok': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nBlock',
+      'Tim gelap $value2 menyerahkan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nTurn Over',
+      'gelap $value2 menyerahkan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nTurn Over',
+      'Tim gelap $value2 rebound serangan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nOffensive Rebound',
+      'gelap $value2 rebound serangan': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nOffensive Rebound',
+      'Tim gelap $value2 asis': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nAssist',
+      'gelap $value2 asis': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nAssist',
+      'Tim gelap $value2 bantu': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nAssist',
+      'gelap $value2 bantu': '$selectedOption $minutes:${remainingSeconds.toString().padLeft(2, '0')}\n${matchData.gelap} #$value2 \nAssist',
     };
 
-    //for (String key in responseMappingTerang.keys) {
-      // if (fulfillmentTextIndo.startsWith(key)) {
-      //   // Menemukan respons yang cocok
-      //   value1 = responseMappingTerang[key]!.split('\n')[2].trim(); // Mengambil "Made +1" sebagai action
-      //   messageTerang = responseMappingTerang[key]!;
-      //   print('message terang: $key');
-      //   break;
-      // }
-    //}
 
     namaTim = (gelapTerang1 == 'terang') ? '${matchData.terang}' : '${matchData.gelap}';
 
-    print('teks: $fulfillmentTextIndo');
-
     for (String key in responseMappingTerang.keys) {
       if (fulfillmentTextIndo.startsWith(key)) {
-        value1 = responseMappingTerang[key]!.split('\n')[2].trim(); // Mengambil "Made +1" dll. sebagai action
+        value1 = responseMappingTerang[key]!.split('\n')[2].trim();
+        print('value1: $value1');
         messageTerang = responseMappingTerang[key]!;
         print('Pesanan yang cocok: $key');
-        //break;
+        break;
       }
     }
 
     for (String key in responseMappingGelap.keys) {
       if (fulfillmentTextIndo.startsWith(key)) {
         value1 = responseMappingGelap[key]!.split('\n')[2].trim(); // Mengambil "Made +1" dll. sebagai action
+        print('value1: $value1');
         messageGelap = responseMappingGelap[key]!;
         print('Pesanan yang cocok: $key');
-        //break;
+        break;
       }
     }
 
     sendDataToAPI();
 
-    //print('teksnya mapping: $responseMappingTerang');
 
     messageTerang = responseMappingTerang[fulfillmentTextIndo] ?? '';
     print('response yang sudah di mapping: $messageTerang');
@@ -824,6 +790,12 @@ class _KalkulatorState extends State<Kalkulator> {
         });
       }
 
+      Timer(Duration(seconds: 3), () {
+        setState(() {
+          _fulfillmentText = ""; // Menghapus teks fulfillmentText setelah 3 detik
+          //selectedValues2.clear();
+        });
+      });
 
       // if (messageTerang.isNotEmpty) {
       //   Message terangMessage = Message(
@@ -844,6 +816,77 @@ class _KalkulatorState extends State<Kalkulator> {
   //   return db?.query('dialogflow_responses') ?? [];
   // }
 
+  List<Widget> terangButtons = [];
+  List<Widget> gelapButtons = [];
+
+  void buildButtons() {
+    // terangButtons.clear();
+    // gelapButtons.clear();
+    terangButtons = terangMain.map((angka) {
+      return Padding(
+        padding: EdgeInsets.all(3),
+        child: ReusableButton1(
+          text: angka,
+          onPressed: () {
+            _handleButtonPressNumber(angka, 'terang');
+            Vibration.vibrate(duration: 100, amplitude: 128);
+          },
+          value: angka,
+          backgroundColor: widget.selectedColor2,
+          textColor: widget.selectedColor1,
+        ),
+      );
+    }).toList();
+
+    gelapButtons = gelapMain.map((angka) {
+      return Padding(
+        padding: EdgeInsets.all(3),
+        child: ReusableButton1(
+          text: angka,
+          onPressed: () {
+            _handleButtonPressNumber(angka, 'gelap');
+            Vibration.vibrate(duration: 100, amplitude: 128);
+          },
+          value: angka,
+          backgroundColor: widget.selectedColor4,
+          textColor: widget.selectedColor3,
+        ),
+      );
+    }).toList();
+
+    setState(() {
+      // Memperbarui terangButtons berdasarkan widget.activeTerang yang baru
+      terangButtons = terangMain.map((angka) {
+        return Padding(
+          padding: EdgeInsets.all(3),
+          child: ReusableButton1(
+            text: angka,
+            onPressed: () => _handleButtonPressNumber(angka, 'terang'),
+            value: angka,
+            backgroundColor: widget.selectedColor2,
+            textColor: widget.selectedColor1,
+          ),
+        );
+      }).toList();
+
+      // Memperbarui gelapButtons berdasarkan widget.activeGelap yang baru
+      gelapButtons = gelapMain.map((angka) {
+        return Padding(
+          padding: EdgeInsets.all(3),
+          child: ReusableButton1(
+            text: angka,
+            onPressed: () => _handleButtonPressNumber(angka, 'gelap'),
+            value: angka,
+            backgroundColor: widget.selectedColor4,
+            textColor: widget.selectedColor3,
+          ),
+        );
+      }).toList();
+    });
+
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final quarters = Provider.of<ConfigurationDataProvider>(context, listen: false).quarters;
@@ -855,12 +898,33 @@ class _KalkulatorState extends State<Kalkulator> {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
+    final terangGelapProvider = Provider.of<TerangGelapProvider>(context);
+    final activeTerang = terangGelapProvider.activeTerang;
+    final activeGelap = terangGelapProvider.activeGelap;
+
+
+    //final GlobalKey<_KalkulatorState> yourWidgetKey = GlobalKey<_KalkulatorState>();
+
     // Menggunakan Provider.of untuk mengakses MatchDataProvider
     final matchDataProvider = Provider.of<MatchDataProvider>(context);
 
     final buttonStatusProvider = Provider.of<ButtonStatusModel>(context);
 
     final timerProvider = Provider.of<CountdownTimerProvider>(context);
+
+    // return FutureBuilder(
+    //   future: fetchDataSubtitution(widget.id),
+    //   builder: (context, snapshot) {
+    //     if (snapshot.connectionState == ConnectionState.waiting) {
+    //       return CircularProgressIndicator(); // Tampilkan loading indicator ketika data diambil
+    //     } else if (snapshot.hasError) {
+    //       return Text('Error: ${snapshot.error}');
+    //     } else {
+    //       //final terangMain = snapshot.data;
+    //       //final gelapMain = snapshot.data['gelapMain'];
+    //     }
+    //   },
+    // );
     return Scaffold(
       backgroundColor: SportkitColors.darkBackground,
       appBar:  AppBar(
@@ -869,11 +933,11 @@ class _KalkulatorState extends State<Kalkulator> {
           onTap: () {
             Navigator.of(context).pop(); // Fungsi untuk kembali
           },
-            child: const Icon(
-              Icons.arrow_back_ios,
-              size: 24, // Ukuran ikon
-              color: Colors.white, // Warna ikon
-            ),
+          child: const Icon(
+            Icons.arrow_back_ios,
+            size: 24, // Ukuran ikon
+            color: Colors.white, // Warna ikon
+          ),
         ),
         actions: <Widget>[
           SvgPicture.asset(
@@ -884,7 +948,12 @@ class _KalkulatorState extends State<Kalkulator> {
           Padding(padding: EdgeInsets.all(7)),
           ElevatedButton(
             onPressed: () {
-              // Logika ketika tombol play ditekan
+              // Navigasi ke layar WebView saat tombol ditekan
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => LogWebView(id: widget.id,),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               //padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 3.0),
@@ -903,7 +972,12 @@ class _KalkulatorState extends State<Kalkulator> {
           Padding(padding: EdgeInsets.all(4)),
           ElevatedButton(
             onPressed: () {
-              // Logika ketika tombol play ditekan
+              // Navigasi ke layar WebView saat tombol ditekan
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => StatistikWebView(id: widget.id,),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               padding: EdgeInsets.symmetric(horizontal: 2.0, vertical: 2.0),
@@ -923,6 +997,10 @@ class _KalkulatorState extends State<Kalkulator> {
             onPressed: () {
               //var matchData = matchDataList;
               String? id = matchData.id ?? '';
+              Navigator.pop(context, {
+                'activeTerang': widget.activeTerang,
+                'activeGelap': widget.activeGelap,
+              });
               Navigator.push(
                 context,
                 new MaterialPageRoute(
@@ -935,6 +1013,7 @@ class _KalkulatorState extends State<Kalkulator> {
                         _selectedColors = colors;
                       });
                       Navigator.of(context).pop();
+                      //yourWidgetKey.currentState?.updateButtonState();
                     }, id: id!, selectedDate: widget.selectedDate,),
                 ),
               );
@@ -959,7 +1038,6 @@ class _KalkulatorState extends State<Kalkulator> {
           padding: EdgeInsets.all(5.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            //mainAxisAlignment: MainAxisAlignment.center,
             children: [
               //timer
               Row(
@@ -1002,7 +1080,7 @@ class _KalkulatorState extends State<Kalkulator> {
                           selectedOption,
                           style: TextStyle(color: SportkitColors.black, fontWeight: FontWeight.bold, fontSize: 20),
                         ),
-                      ),// Ganti warna latar belakang bagian depan
+                      ),
                     ),
                   ),
                   Column(
@@ -1014,14 +1092,6 @@ class _KalkulatorState extends State<Kalkulator> {
                             color: SportkitColors.black,
                             borderRadius: BorderRadius.circular(4)
                         ),
-                        // child: Text(
-                        //   _formatTime(_start!),
-                        //   //'${_formatTime(10)}',
-                        //   style: TextStyle(
-                        //     color: SportkitColors.lightGreen,
-                        //     fontSize: 20,
-                        //   ),
-                        // ),
                         child: GestureDetector(
                           onTap: () {
                             _showPickerDialog(context);
@@ -1036,29 +1106,17 @@ class _KalkulatorState extends State<Kalkulator> {
                   ),
                   ElevatedButton(
                     onPressed: _isActive ? _pauseTimer : _startTimer,
-                    // onPressed: () {
-                    //   if (timerProvider.isActive) {
-                    //     timerProvider.pauseTimer();
-                    //   } else {
-                    //     timerProvider.startTimer(10);
-                    //   }
-                    //},
                     child: Icon(
                       _isActive ? Icons.pause : Icons.play_arrow,
-                      //timerProvider.isActive ? Icons.pause : Icons.play_arrow,
-                      size: 25, // Ukuran ikon
-                      color: Colors.white, // Warna ikon
+                      size: 25,
+                      color: Colors.white,
                     ),
                     style: ElevatedButton.styleFrom(
-                      primary: SportkitColors.green, // Warna latar belakang tombol
+                      primary: SportkitColors.green,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4), // Radius border (sesuaikan dengan kebutuhan)
+                        borderRadius: BorderRadius.circular(4), // Radius border
                       ),
                     ),
-                    // child: Padding(
-                    //   padding: EdgeInsets.all(1),
-                    //
-                    // ),
                   ),
                   ElevatedButton(
                     onPressed: () {
@@ -1069,7 +1127,7 @@ class _KalkulatorState extends State<Kalkulator> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      primary: SportkitColors.yellow, // Warna latar belakang tombol
+                      primary: SportkitColors.yellow,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(4), // Radius border (sesuaikan dengan kebutuhan)
                       ),
@@ -1098,27 +1156,17 @@ class _KalkulatorState extends State<Kalkulator> {
                     ),
                   ),
                   Positioned(
-                    // Letakkan Text widget untuk menampilkan hasil dari fungsi handleSubmitted
                     top: 5,
                     left: 15,
                     child: Column(
                       children: [
-                        // Icon(Icons.check_circle, color: SportkitColors.green,),
                         Text(
-                          _fulfillmentText, // Tampilkan hasil di sini
+                          _fulfillmentText,
                           style: GoogleFonts.poppins(fontSize: 20, color: SportkitColors.white),
                         ),
                       ],
                     ),
                   ),
-                  // ListView.builder(
-                  //   itemCount: responses.length,
-                  //   itemBuilder: (BuildContext context, int index) {
-                  //     return ListTile(
-                  //       title: Text(responses[index]),
-                  //     );
-                  //   },
-                  // ),
                   Positioned(
                     top: 5,
                     left: 15,
@@ -1135,8 +1183,8 @@ class _KalkulatorState extends State<Kalkulator> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('$selectedOption ${_formatTime(_lastElapsedTime)}', style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
-                                Text(selectedValues.join(), style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
-                                Text(selectedValues2.join(), style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
+                                Text('${selectedValues.join()}', style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
+                                Text('${selectedValues2.join()}', style: GoogleFonts.poppins(fontSize: 20, color: Colors.white)),
                               ],
                             ),
                           ],
@@ -1145,16 +1193,8 @@ class _KalkulatorState extends State<Kalkulator> {
                     )
                         : SizedBox(), // Jika false, tidak menampilkan apapun
                   ),
-                  //if(!isOk) Container(),
                 ],
               ),
-              // TextField(
-              //   controller: v.textEditingController,
-              //   decoration: InputDecoration(
-              //     fillColor: SportkitColors.black,
-              //   ),
-              //   enabled: false,
-              // ),
               Padding(padding: EdgeInsets.all(4)),
               Container(
                 alignment: Alignment.center,
@@ -1175,45 +1215,22 @@ class _KalkulatorState extends State<Kalkulator> {
                   SingleChildScrollView(
                     child:  Column(
                       children: [
-                          Wrap(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: widget.activeTerang.take(5).map((angka) {
-                                  //final angkaStr = angka.toString(); // Ubah angka menjadi String jika diperlukan
-                                  return Padding(
-                                    padding: EdgeInsets.all(3),
-                                    child: ReusableButton1(
-                                      text: angka,
-                                      onPressed: () => _handleButtonPressNumber(angka, 'terang'),
-                                      value: angka,
-                                      backgroundColor: widget.selectedColor2,
-                                      textColor: widget.selectedColor1,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                  Padding(padding: EdgeInsets.all(2)),
-                  SingleChildScrollView(
-                    child:  Wrap(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: widget.activeGelap.take(5).map((angka) {
-                            //final angkaStr = angka.toString(); // Ubah angka menjadi String jika diperlukan
+                        Wrap(
+                          //children: terangButtons,
+                          children: terangMain.map((angka) {
+                            //final angkaStr = angka.toString();
                             return Padding(
                               padding: EdgeInsets.all(3),
                               child: ReusableButton1(
                                 text: angka,
-                                onPressed: () => _handleButtonPressNumber(angka, 'gelap'),
+                                onPressed: () {
+                                  _handleButtonPressNumber(angka, 'terang');
+                                  Vibration.vibrate(duration: 100, amplitude: 128);
+                                  //buttonStatusProvider.saveButtonStatusToStorage();
+                                },
                                 value: angka,
-                                backgroundColor: widget.selectedColor4,
-                                textColor: widget.selectedColor3,
+                                backgroundColor: widget.selectedColor2,
+                                textColor: widget.selectedColor1,
                               ),
                             );
                           }).toList(),
@@ -1221,10 +1238,32 @@ class _KalkulatorState extends State<Kalkulator> {
                       ],
                     ),
                   ),
+                  Padding(padding: EdgeInsets.all(2)),
+                  SingleChildScrollView(
+                    child:  Wrap(
+                      //children: gelapButtons,
+                      children: gelapMain.map((angka) {
+                        //final angkaStr = angka.toString();
+                        return Padding(
+                          padding: EdgeInsets.all(3),
+                          child: ReusableButton1(
+                            text: angka,
+                            onPressed: () {
+                              _handleButtonPressNumber(angka, 'gelap');
+                              Vibration.vibrate(duration: 100, amplitude: 128);
+                            },
+                            value: angka,
+                            backgroundColor: widget.selectedColor4,
+                            textColor: widget.selectedColor3,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                   Padding(padding: EdgeInsets.all(3)),
                 ],
               ),
-              // Padding(padding: EdgeInsets.all(3)),
+              Padding(padding: EdgeInsets.all(3)),
               Container(
                 alignment: Alignment.center,
                 height: 50,
@@ -1233,7 +1272,7 @@ class _KalkulatorState extends State<Kalkulator> {
                   color: SportkitColors.black, borderRadius: BorderRadius.circular(1),
                 ),
                 child: Text(
-                    _handleButtonPress(value1),
+                  _handleButtonPress(value1),
                   style: TextStyle(color: SportkitColors.green,  fontFamily: 'DotMatrix', fontWeight: FontWeight.bold),
                 ),
               ),
@@ -1249,11 +1288,12 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: '1',
                           text2: 'Made',
-                          // onPressed: () => _handleButtonPress('Made 1'),
-                          onPressed: () => _handleButtonPress('Made 1'),
+                          // onPressed: () => _handleButtonPress('Made +1'),
+                          onPressed: () {
+                            _handleButtonPress('Made +1');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Made 1',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                           width: MediaQuery.of(context).size.width * 0.1,
@@ -1263,10 +1303,11 @@ class _KalkulatorState extends State<Kalkulator> {
                           text1: '1',
                           text2: 'Missed',
                           // onPressed: () => _handleButtonPress('Missed 1'),
-                          onPressed: () => _handleButtonPress('Missed 1'),
+                          onPressed: () {
+                            _handleButtonPress('Missed +1');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Missed 1',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                           width: MediaQuery.of(context).size.width * 0.2,
@@ -1275,10 +1316,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'A',
                           text2: 'Assist',
-                          onPressed: () => _handleButtonPress('Assist'),
+                          onPressed: () {
+                            _handleButtonPress('Assist');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Assist',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                           width: MediaQuery.of(context).size.width * 0.2,
@@ -1287,10 +1329,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'TO',
                           text2: 'Turn Over',
-                          onPressed: () => _handleButtonPress('Turn Over'),
+                          onPressed: () {
+                            _handleButtonPress('Turn Over');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Turn Over',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                           width: MediaQuery.of(context).size.width * 0.2,
@@ -1299,10 +1342,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'P',
                           text2: 'Personal',
-                          onPressed: () => _handleButtonPress('Personal'),
+                          onPressed: () {
+                            _handleButtonPress('Personal Foul');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Personal Foul',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                           width: MediaQuery.of(context).size.width * 0.2,
@@ -1317,10 +1361,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: '2',
                           text2: 'Made',
-                          onPressed: () => _handleButtonPress('Made 2'),
+                          onPressed: () {
+                            _handleButtonPress('Made +2');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Made 2',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                         ),
@@ -1328,10 +1373,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: '2',
                           text2: 'Missed',
-                          onPressed: () => _handleButtonPress('Missed 2'),
+                          onPressed: () {
+                            _handleButtonPress('Missed +2');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Missed 2',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                         ),
@@ -1339,10 +1385,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'OR',
                           text2: 'Ofs Rebound',
-                          onPressed: () => _handleButtonPress('Ofs Rebound'),
+                          onPressed: () {
+                            _handleButtonPress('Offensive Rebound');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Offensive Rebound',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                         ),
@@ -1350,10 +1397,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'B',
                           text2: 'Block',
-                          onPressed: () => _handleButtonPress('Block'),
+                          onPressed: () {
+                            _handleButtonPress('Block');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Block',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                         ),
@@ -1361,10 +1409,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'T',
                           text2: 'Technical',
-                          onPressed: () => _handleButtonPress('Technical Foul'),
+                          onPressed: () {
+                            _handleButtonPress('Technical Foul');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Technical Foul',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                         ),
@@ -1378,10 +1427,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: '3',
                           text2: 'Made',
-                          onPressed: () => _handleButtonPress('Made 3'),
+                          onPressed: () {
+                            _handleButtonPress('Made +3');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Made 3',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                         ),
@@ -1389,10 +1439,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: '3',
                           text2: 'Missed',
-                          onPressed: () => _handleButtonPress('Missed 3'),
+                          onPressed: () {
+                            _handleButtonPress('Missed +3');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Missed 3',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                         ),
@@ -1400,10 +1451,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'DR',
                           text2: 'Dfs Rebound',
-                          onPressed: () => _handleButtonPress('DFS Rebound'),
+                          onPressed: () {
+                            _handleButtonPress('Defensive Rebound');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Defensive Rebound',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                         ),
@@ -1411,10 +1463,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'S',
                           text2: 'Steal',
-                          onPressed: () => _handleButtonPress('Steal'),
+                          onPressed: () {
+                            _handleButtonPress('Steal');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Steal',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.green,
                           textColor: SportkitColors.white,
                         ),
@@ -1422,10 +1475,11 @@ class _KalkulatorState extends State<Kalkulator> {
                         ReusableButton(
                           text1: 'U',
                           text2: 'Unsports',
-                          onPressed: () => _handleButtonPress('Unsportsmanship Foul'),
+                          onPressed: () {
+                            _handleButtonPress('Unsportmanship Foul');
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'Unsportsmanship Foul',
-                          // width: 67,
-                          // height: 60,
                           backgroundColor: SportkitColors.red,
                           textColor: SportkitColors.white,
                         ),
@@ -1443,7 +1497,10 @@ class _KalkulatorState extends State<Kalkulator> {
                       children: [
                         ReusableButton1(
                           text: 'Clear',
-                          onPressed: () => _handleClearButtonPress(),
+                          onPressed: () {
+                            _handleClearButtonPress();
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'clear',
                           width: 93,
                           height: 50,
@@ -1453,7 +1510,10 @@ class _KalkulatorState extends State<Kalkulator> {
                         Padding(padding: EdgeInsets.all(3)),
                         ReusableButton1(
                           text: 'OK',
-                          onPressed: _handleOkButtonPress,
+                          onPressed: () {
+                            _handleOkButtonPress();
+                            Vibration.vibrate(duration: 100, amplitude: 128);
+                          },
                           value: 'ok',
                           width: 80,
                           height: 50,
@@ -1475,6 +1535,7 @@ class _KalkulatorState extends State<Kalkulator> {
                             onPressed: (){
                               if (!_speech.isListening) {
                                 handleStream();
+                                Vibration.vibrate(duration: 100, amplitude: 128);
                               } else {
                                 stopListening();
                               }
@@ -1490,7 +1551,7 @@ class _KalkulatorState extends State<Kalkulator> {
                             padding: EdgeInsets.all(3.0), // Set the left margin here
                             child: TextField(
                               style: TextStyle(color: Colors.white),
-                              enabled: true,
+                              enabled: false,
                               controller: _textController,
                               onSubmitted: handleSubmitted, // Memanggil handleSubmitted pada instance recording
                               decoration: InputDecoration(
@@ -1504,10 +1565,10 @@ class _KalkulatorState extends State<Kalkulator> {
                                   borderSide: BorderSide.none, // Tidak ada border
                                   borderRadius: BorderRadius.circular(18),
                                 ),
-                            ),
+                              ),
 
+                            ),
                           ),
-                        ),
                         ),
                       ],
                     ),

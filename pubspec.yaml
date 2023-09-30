@@ -47,12 +47,15 @@ dependencies:
   flutter_colorpicker: ^1.0.3
   provider: ^6.0.5
   timer_count_down: ^2.2.2
-  flutter_svg: ^0.22.0
+  flutter_svg: ^2.0.7
   http: ^1.1.0
   sqflite: ^2.3.0
   pausable_timer: ^2.0.0+1
   uuid: ^3.0.1
   google_fonts: ^5.1.0
+  vibration: ^1.8.1
+  shared_preferences: ^2.0.9
+  webview_flutter: ^4.2.4
 
 
 dev_dependencies:

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:core';
-import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,19 +7,13 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:date_field/date_field.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:sportkit_statistik/Controller/ColorProvider.dart';
-import 'package:sportkit_statistik/Controller/configuration_provider.dart';
 import 'package:sportkit_statistik/Utils/Colors.dart';
 import 'package:sportkit_statistik/Views/Screen/kalkulator.dart';
 import 'package:http/http.dart' as http;
 
 import '../../Controller/timer_provider.dart';
-import '../../Controller/token_provider.dart';
-import '../../Controller/userData_provider.dart';
 import '../../Models/data_inputConfiguration.dart';
 import '../../Models/data_pertandingan.dart';
-import '../../Models/data_tanggal.dart';
-import '../../Models/data_user.dart';
 
 class InputConfiguration extends StatefulWidget {
   final List<Color> initialColors;
@@ -59,7 +52,7 @@ class _InputConfigurationState extends State<InputConfiguration> {
   TextEditingController _venueController = TextEditingController();
   TextEditingController _dateTextController = TextEditingController();
   DateTime? _selectedDate;
-  // late TimeOfDay _selectedTime;
+
   TimeOfDay _selectedtime = TimeOfDay(hour: 7, minute: 15);
 
   Color _selectedColor1 = Colors.blue;
@@ -215,40 +208,27 @@ class _InputConfigurationState extends State<InputConfiguration> {
     print('$token');
     print('tanggal yang di select: $selectedDate');
 
-    //String token = Provider.of<TokenProvider>(context).token;
-
-    // data yang akan di POST
-    // final Map<String, dynamic> requestData = {
-    //   'terang': _nameController.text,
-    //   'terang_pemain': _jerseyController.text,
-    //   'gelap': _nameController2.text,
-    //   'gelap_pemain': _jerseyController2.text,
-    //   'venue': _venueController.text,
-    // };
-
 
     if (response.statusCode == 200) {
       responseData = response.body;
       final _responseData = json.decode(response.body);
       print('Response Data: $responseData');
-      //final List<dynamic> responseData = json.decode(response.body);
-      //List<Map<String, dynamic>> data = json.decode(responseData);
+
       ApiResponse apiResponse = ApiResponse.fromJson(_responseData);
       MatchData match = apiResponse.data.isNotEmpty ? apiResponse.data[0] : matchData;
 
-      //final id = '100029';
       try {
         //print("matchDataList: $responseData");
         matchData = apiResponse.data.firstWhere((data) => data.id == id);
 
-        // Isi formulir dengan data yang sesuai
+
         setState(() {
           _nameController.text = matchData.terang ?? '';
           _jerseyController.text = matchData.terangPemain ?? '';
           _nameController2.text = matchData.gelap ?? '';
           _jerseyController2.text = matchData.gelapPemain ?? '';
           _venueController.text = matchData.venue ?? '';
-          // Isi formulir dengan data lainnya sesuai kebutuhan
+
           String dateStr = matchData.tanggal ?? '';
           print('$dateStr');
           _selectedDate = DateFormat('dd/MM/yyyy').parse(dateStr);
@@ -263,31 +243,14 @@ class _InputConfigurationState extends State<InputConfiguration> {
           String inputPeriods = _periodtimesController.text;
           if (int.tryParse(inputPeriods) != null) {
             intValue = int.parse(inputPeriods);
-            // Lakukan sesuatu dengan nilai integer
           } else {
-            // Tampilkan pesan kesalahan karena input tidak valid
+            print('Input tidak valid');
           }
 
         });
       } catch (e) {
-        // Handle the case where no match was found
         print("No element found with the specified ID: $id");
-        // You can assign a default value or take appropriate action here.
       }
-
-      // for (var matchData in apiResponse.data) {
-      //   final newTerang = match.terang ?? '';
-      //   _nameController.text = newTerang;
-      //
-      //   final newJersey = match.terangPemain ?? '';
-      //   _jerseyController.text = newJersey;
-      //
-      //   final newGelap = match.gelap ?? '';
-      //   _nameController2.text = newGelap;
-      //
-      //   final newJersey2 = match.gelapPemain ?? '';
-      //   _jerseyController2.text = newJersey2;
-      // }
 
       setState(() {
         matchDataList = apiResponse.data;
@@ -297,11 +260,6 @@ class _InputConfigurationState extends State<InputConfiguration> {
         matchDataList = (_responseData['data'] as List)
             .map((data) => MatchData.fromJson(data))
             .toList();
-        // print(matchDataList);
-        //_nameController.text = apiResponse.data[0].terang ?? '';
-        //_jerseyController.text = apiResponse.data[0].terangPemain ?? '';
-        //Provider.of<ConfigurationDataProvider>(context, listen: false).updateName(terang);
-        //final newData = Provider.of<ConfigurationDataProvider>(context, listen: false).updateName(newTerang);
       });
 
     } else {
@@ -325,9 +283,7 @@ class _InputConfigurationState extends State<InputConfiguration> {
   @override
   Widget build(BuildContext context) {
     final configuration = Provider.of<ConfigurationModel>(context);
-    //final TextEditingController periodtimesController = configuration.periodtimesController;
     final timerProvider = Provider.of<CountdownTimerProvider>(context);
-    //final TextEditingController periodtimesController = timerProvider.periodtimesController;
 
     return Scaffold(
       appBar: AppBar(
@@ -416,21 +372,6 @@ class _InputConfigurationState extends State<InputConfiguration> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // GestureDetector(
-                        //   onTap: () {
-                        //     _openColorPickerDialogs(_selectedColor1 as List<Color>, (color) {
-                        //       setState(() {
-                        //         _selectedColor1 = color as Color;
-                        //         Provider.of<ColorProvider>(context, listen: false).setSelectedColors(
-                        //           _selectedColor1,
-                        //           _selectedColor2,
-                        //           _selectedColor3,
-                        //           _selectedColor4,
-                        //         ); // Mengubah warna pada ColorProvider
-                        //       });
-                        //     });
-                        //   },
-                        //
                         GestureDetector(
                           onTap: () {
                             _openColorPickerDialog(_selectedColor1, (color) {
@@ -781,6 +722,10 @@ class _InputConfigurationState extends State<InputConfiguration> {
                   ElevatedButton(
                     onPressed: () {
 // Mengisi data dalam configurationModel menggunakan TextEditingController
+                      bool isButtonClicked = false;
+                      setState(() {
+                        isButtonClicked = !isButtonClicked;
+                      });
 
                       String name = _nameController.text;
                       String jersey = _jerseyController.text;
@@ -796,18 +741,30 @@ class _InputConfigurationState extends State<InputConfiguration> {
                       // print('BG/FG Colors $colors');
                       configuration.updateData(name, jersey, colors, name2, jersey2, colors2, time!);
 
-                      Navigator.push(
-                        context,
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => Kalkulator(selectedColor1: Colors.black, selectedColor2: Colors.red, selectedColor3: Colors.white, selectedColor4: Colors.blue, token: token, matchData: matchData, data: configuration.configurationData, id: widget.id!, selectedDate: selectedDate, activeTerang: [], activeGelap: [],),
+                          builder: (context) => Kalkulator(
+                            selectedColor1: _selectedColor1,
+                            selectedColor2: _selectedColor2,
+                            selectedColor3: _selectedColor3,
+                            selectedColor4: _selectedColor4,
+                            token: token,
+                            matchData: matchData,
+                            data: configuration.configurationData,
+                            id: widget.id!,
+                            selectedDate: selectedDate,
+                            activeTerang: [],
+                            activeGelap: [],
+                          ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(horizontal: 60),
-                      primary: SportkitColors.green, // Ubah warna latar belakang
+                      primary: SportkitColors.green,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4), // Ubah radius border
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                     child: Text('Save', style: TextStyle(fontSize: 20, color: Colors.white)),

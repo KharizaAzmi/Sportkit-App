@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class StatistikWebView extends StatelessWidget {
+class LogWebView extends StatelessWidget {
 
   final String id;
 
-  StatistikWebView({required this.id});
+  LogWebView({required this.id});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class StatistikWebView extends StatelessWidget {
               },
             ),
           )
-          ..loadRequest(Uri.parse('https://sportkit.id/friendship/stats/statistik.php?event_id=$id')),
+          ..loadRequest(Uri.parse('https://sportkit.id/friendship/stats/log.php?event_id=$id')),
       ),
     );
   }

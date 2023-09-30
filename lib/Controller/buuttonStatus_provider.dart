@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ButtonStatusModel with ChangeNotifier {
   // Gunakan Map untuk menyimpan status tombol untuk setiap ID pertandingan
@@ -28,6 +31,26 @@ class ButtonStatusModel with ChangeNotifier {
 
     buttonStatusMap2[id]![index] = !buttonStatusMap2[id]![index];
     notifyListeners();
+  }
+
+  void saveButtonStatusToStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final buttonStatusJson = buttonStatusMap.map((id, statusList) {
+      return MapEntry(id, statusList.map((status) => status ? 1 : 0).toList());
+    });
+    prefs.setString('buttonStatus', json.encode(buttonStatusJson));
+  }
+
+  Future<void> loadButtonStatusFromStorage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final buttonStatusJsonString = prefs.getString('buttonStatus');
+    if (buttonStatusJsonString != null) {
+      final buttonStatusJson = json.decode(buttonStatusJsonString);
+      buttonStatusMap = buttonStatusJson.map((id, statusList) {
+        return MapEntry(id, statusList.map<int>((status) => status == 1).toList());
+      });
+      notifyListeners();
+    }
   }
 
 }

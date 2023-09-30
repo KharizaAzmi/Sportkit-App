@@ -10,6 +10,7 @@ import 'package:sportkit_statistik/Views/Screen/login.dart';
 import 'package:sportkit_statistik/Views/Screen/subtitution.dart';
 
 import 'Controller/matchData_provider.dart';
+import 'Controller/subtitution_provider.dart';
 import 'Controller/timer_provider.dart';
 import 'Controller/user_provider.dart';
 
@@ -42,6 +43,9 @@ void main() {
         ChangeNotifierProvider(
           create: (context) => ButtonStatusModel(),
         ),
+        ChangeNotifierProvider(
+          create: (context) => TerangGelapProvider(),
+        ),
       ],
       child: MyApp(),
     ),
@@ -54,6 +58,13 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    // return ChangeNotifierProvider(
+    //   create: (context) => ButtonStatusModel(),
+    //   child: MaterialApp(
+    //     debugShowCheckedModeBanner: false,
+    //     home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    //   ),
+    // );
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -72,7 +83,7 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),

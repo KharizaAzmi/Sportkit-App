@@ -7,6 +7,8 @@ import 'package:sportkit_statistik/Views/Screen/kalkulator.dart';
 import 'package:sportkit_statistik/Views/Screen/konfigurasi.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
+import 'package:sportkit_statistik/Views/Screen/log.dart';
+import 'package:sportkit_statistik/Views/Screen/statistik.dart';
 
 import '../../Controller/user_provider.dart';
 import '../../Utils/Colors.dart';
@@ -16,8 +18,10 @@ class HomeStat extends StatefulWidget {
   final String token;
   final MatchData matchData;
   final String id;
+  final List<String> activeTerang;
+  final List<String> activeGelap;
 
-  HomeStat({required this.token, required this.matchData, required this.id});
+  HomeStat({required this.token, required this.matchData, required this.id, required this.activeTerang, required this.activeGelap});
 
   @override
   _HomeStatState createState() => _HomeStatState();
@@ -35,7 +39,7 @@ class _HomeStatState extends State<HomeStat> {
   late Kalkulator myKalkulator;
   String selectedValue = '2023-06-25';
   late String token;
-  late String _id;
+  String _id = '';
   late TanggalItem tanggalItem;
   MatchData matchData = MatchData(id: '', waktu: '', venue: '', terang: '', gelap: '', KU: '', pool: '', terangPemain: '', gelapPemain: '', terangId: '', gelapId: '', tanggalPlain: '', tanggal: '', jam: '');
 
@@ -47,9 +51,7 @@ class _HomeStatState extends State<HomeStat> {
       fetchData(selectedValue);
     });
     fetchData(selectedValue);
-    //_id = widget.matchData.id!;
-    //matchData = widget.matchData;
-    //final id = Provider.of<UserDataProvider>(context, listen: false).id;
+    _id = widget.id;
   }
 
   void initializeToken() {
@@ -68,15 +70,23 @@ class _HomeStatState extends State<HomeStat> {
     final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_by_tanggal.php?tanggal=$selectedDate');
     final response = await http.get(url, headers: getHeaders());
 
+    //print(response);
+
     if (response.statusCode == 200) {
       final responseData = response.body;
       final _responseData = json.decode(response.body);
-      //final List<dynamic> responseData = json.decode(response.body);
-      //List<Map<String, dynamic>> data = json.decode(responseData);
+
       ApiResponse apiResponse = ApiResponse.fromJson(_responseData);
 
       for (var matchData in apiResponse.data) {
-        String? id = matchData.id;
+        _id = matchData.id!;
+        print('id: $_id');
+        try {
+          matchData = apiResponse.data.firstWhere((data) => data.id == _id);
+
+        } catch (e) {
+          print("No element found with the specified ID: $_id");
+        }
       }
 
       setState(() {
@@ -85,7 +95,6 @@ class _HomeStatState extends State<HomeStat> {
             .toList();
       });
       print('Response Data: $responseData');
-      print('selected Value: $selectedValue');
     } else {
       print('HTTP Request Failed: ${response.statusCode}');
     }
@@ -103,7 +112,6 @@ class _HomeStatState extends State<HomeStat> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print(data);
-        //final List<dynamic> tanggalData = data['data'];
 
         tanggalData = data['data'];
 
@@ -126,10 +134,9 @@ class _HomeStatState extends State<HomeStat> {
   // Metode ini akan dipanggil ketika nilai dropdown berubah.
   void onDropdownChanged(String? newValue) {
     setState(() {
-      selectedValue = newValue!; // Perbarui selectedValue sesuai dengan yang dipilih.
+      selectedValue = newValue!;
     });
 
-    // Setelah selectedValue diperbarui, Anda dapat memanggil fetchData dengan selectedValue baru di sini jika diperlukan.
     fetchData(selectedValue);
   }
 
@@ -140,7 +147,6 @@ class _HomeStatState extends State<HomeStat> {
     selectedColor4: Colors.black,
     token: '',
     matchData: MatchData(id: '', waktu: '', venue: '', terang: '', gelap: '', KU: '', pool: '', terangPemain: '', gelapPemain: '', terangId: '', gelapId: '', tanggalPlain: '', tanggal: '', jam: ''), data: {}, id: '', selectedDate: '', activeTerang: [], activeGelap: [],
-    // ...and so on for selectedColor3 and selectedColor4
   );
 
 
@@ -157,23 +163,23 @@ class _HomeStatState extends State<HomeStat> {
         leading: Padding(padding: EdgeInsets.only(left: 0),),
         actions: [
           SvgPicture.asset(
-            'assets/image/logo-stat.svg', // Ganti dengan path gambar SVG Anda
-            width: 424, // Lebar gambar
-            height: 34, // Tinggi gambar
+            'assets/image/logo-stat.svg',
+            width: 424,
+            height: 34,
           ),
           SizedBox(width: 120,),
           DropdownButton<String>(
             value: selectedValue,
-            style: TextStyle(color: Colors.white), // Ganti warna teks
-            icon: Icon(Icons.arrow_drop_down, color: Colors.white), // Ganti ikon dropdown
-            elevation: 16, // Ganti elevasi dropdown menu
-            dropdownColor: SportkitColors.darkBackground, // Ganti warna latar belakang dropdown menu
+            style: TextStyle(color: Colors.white),
+            icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+            elevation: 16,
+            dropdownColor: SportkitColors.darkBackground,
             items: stringTanggalList.map((String tanggal) {
               return DropdownMenuItem<String>(
                 value: tanggal,
                 child: Text(
                   tanggal,
-                  style: TextStyle(color: Colors.white), // Ganti warna teks item
+                  style: TextStyle(color: Colors.white),
                 ),
               );
             }).toList(),
@@ -206,9 +212,6 @@ class _HomeStatState extends State<HomeStat> {
                           Container(
                             width: screenWidth,
                             height: 140,
-                            // decoration: BoxDecoration(
-                            //   color: SportkitColors.darkBackground,
-                            // ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -236,7 +239,12 @@ class _HomeStatState extends State<HomeStat> {
                                       children: [
                                         ElevatedButton(
                                           onPressed: () {
-                                            // Logika ketika tombol play ditekan
+                                            // Navigasi ke layar WebView saat tombol ditekan
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) => LogWebView(id: _id,),
+                                              ),
+                                            );
                                           },
                                           style: ElevatedButton.styleFrom(
                                             primary: SportkitColors.grey,
@@ -254,7 +262,12 @@ class _HomeStatState extends State<HomeStat> {
                                         SizedBox(width: 8),
                                         ElevatedButton(
                                           onPressed: () {
-                                            //routing ke webview
+                                            // Navigasi ke layar WebView saat tombol ditekan
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (context) => StatistikWebView(id: _id,),
+                                              ),
+                                            );
                                           },
                                           style: ElevatedButton.styleFrom(
                                             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -332,7 +345,10 @@ class _HomeStatState extends State<HomeStat> {
                                         ElevatedButton(
                                           onPressed: () {
                                             String? id = matchData.id;
-                                            Navigator.push(
+                                            // SchedulerBinding.instance.addPostFrameCallback((_) {
+                                            //
+                                            // });
+                                            final result = Navigator.push(
                                               context,
                                               MaterialPageRoute(
                                                 builder: (context) => Kalkulator(
@@ -341,7 +357,7 @@ class _HomeStatState extends State<HomeStat> {
                                                   selectedColor1: Colors.white,
                                                   selectedColor2: Colors.blue,
                                                   selectedColor3: Colors.red,
-                                                  selectedColor4: Colors.black, data: {}, id: id!, selectedDate: selectedValue, activeTerang: [], activeGelap: [],
+                                                  selectedColor4: Colors.black, data: {}, id: id!, selectedDate: selectedValue, activeTerang: widget.activeTerang, activeGelap: widget.activeGelap,
                                                   // onColorsChanged: (colors) {
                                                   //   setState(() {
                                                   //     _selectedColors = colors;

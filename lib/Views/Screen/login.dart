@@ -55,7 +55,7 @@ class _LoginState extends State<Login> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => HomeStat(token: token, matchData: matchData, id: '',),
+            builder: (context) => HomeStat(token: token, matchData: matchData, id: '', activeTerang: [], activeGelap: []),
           ),
         );
       } else {

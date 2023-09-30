@@ -1,12 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:date_field/date_field.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:sportkit_statistik/Controller/ColorProvider.dart';
 import 'package:sportkit_statistik/Models/data_pertandingan.dart';
 import 'package:sportkit_statistik/Utils/Colors.dart';
 import 'package:sportkit_statistik/Views/Component/reusable_button1.dart';
@@ -17,11 +12,8 @@ import '../../Controller/buuttonStatus_provider.dart';
 import '../../Models/data_subtitution.dart';
 
 class Subtitution extends StatefulWidget {
-  // final List<Color> initialColors;
-  // final Function(List<Color>) onColorsChanged;
   final String token;
   final MatchData matchData;
-  //final Map<String, dynamic> data;
   final String id;
   final String selectedDate;
 
@@ -48,11 +40,10 @@ class _SubtitutionState extends State<Subtitution> {
     super.initState();
     initializeToken();
     fetchData(widget.selectedDate);
+    fetchDataSubtitution(widget.id);
     token = widget.token;
     matchData = widget.matchData;
     id = widget.id;
-    //angkaList = []; // Inisialisasi angkaList dengan daftar kosong
-    //isButtonActiveList = []; // Inisialisasi isButtonActiveList dengan daftar kosong
   }
 
   void initializeToken() {
@@ -77,31 +68,18 @@ class _SubtitutionState extends State<Subtitution> {
     if (response.statusCode == 200) {
       final responseData = response.body;
       final _responseData = json.decode(response.body);
-      //final List<dynamic> responseData = json.decode(response.body);
-      //List<Map<String, dynamic>> data = json.decode(responseData);
       ApiResponse apiResponse = ApiResponse.fromJson(_responseData);
 
       try {
-        //print("matchDataList: $responseData");
         matchData = apiResponse.data.firstWhere((data) => data.id == id);
 
         String deretAngka = '${matchData.terangPemain}';
         angkaList = deretAngka.split(',');
-        isButtonActiveList = List.generate(angkaList!.length, (index) => true);
 
         String deretAngka2 = '${matchData.gelapPemain}';
         angkaList2 = deretAngka2.split(',');
-        isButtonActiveList2 = List.generate(angkaList2!.length, (index) => true);
-
-        // Isi formulir dengan data yang sesuai
-        // setState(() {
-        //   _nameController.text = matchData.terang ?? '';
-        //   // Isi formulir dengan data lainnya sesuai kebutuhan
-        // });
       } catch (e) {
-        // Handle the case where no match was found
         print("No element found with the specified ID: $id");
-        // You can assign a default value or take appropriate action here.
       }
 
       for (var matchData in apiResponse.data) {
@@ -122,11 +100,6 @@ class _SubtitutionState extends State<Subtitution> {
 
   Future<void> sendSubtitutionData(SubtitutionData subtitutionData) async {
     final url = Uri.parse('https://sportkit.id/friendship/api/v1/post_subtitution.php');
-
-    // final headers = {
-    //   'Content-Type': 'application/json',
-    //   //Tambahkan header lain jika diperlukan, seperti token
-    // };
 
     final jsonData = subtitutionData.toJson();
     final requestBody = json.encode(jsonData);
@@ -150,6 +123,32 @@ class _SubtitutionState extends State<Subtitution> {
       print('Error: $error');
     }
   }
+
+  List<dynamic> terangMain = [];
+  List<dynamic> gelapMain = [];
+  void fetchDataSubtitution(String id) async {
+    final url = Uri.parse('https://sportkit.id/friendship/api/v1/list_pemain.php?event_id=$id&action=subtitution');
+    final response = await http.get(url, headers: getHeaders());
+
+    final responseJson = json.decode(response.body);
+
+    if (responseJson['status'] == true) {
+      final data = responseJson['data'];
+
+      final terangMainString = data['terang_main'];
+      final gelapMainString = data['gelap_main'];
+
+      terangMain = terangMainString.split(',').toList();
+      gelapMain = gelapMainString.split(',').toList();
+
+      print('Pemain Terang Main: $terangMain');
+      print('Pemain Gelap Main: $gelapMain');
+    } else {
+      final message = responseJson['message'];
+      print('Error: $message');
+    }
+  }
+
 
 
   @override
@@ -196,6 +195,7 @@ class _SubtitutionState extends State<Subtitution> {
                     children: angkaList.asMap().entries.map((entry) {
                       final index = entry.key;
                       final angka = entry.value;
+                      //final isActive = isButtonActiveList[index];
                       final isActive = buttonStatusProvider.buttonStatusMap[id] != null ? buttonStatusProvider.buttonStatusMap[id]![index] : false;
 
                       return Padding(
@@ -205,6 +205,7 @@ class _SubtitutionState extends State<Subtitution> {
                           onPressed: () {
                             setState(() {
                               buttonStatusProvider.toggleButton(id, index);
+                              //isButtonActiveList[index] = !isActive;
                             });
                           },
                           value: angka,
@@ -234,6 +235,7 @@ class _SubtitutionState extends State<Subtitution> {
                     children: angkaList2.asMap().entries.map((entry) {
                       final index = entry.key;
                       final angka = entry.value;
+                      //final isActive = isButtonActiveList2[index];
                       final isActive = buttonStatusProvider.buttonStatusMap2[id] != null ? buttonStatusProvider.buttonStatusMap2[id]![index] : false;
 
                       return Padding(
@@ -242,6 +244,7 @@ class _SubtitutionState extends State<Subtitution> {
                           text: angka,
                           onPressed: () {
                             setState(() {
+                              //isButtonActiveList2[index] = !isActive;
                               buttonStatusProvider.toggleButton2(id, index);
                             });
                           },
@@ -253,8 +256,7 @@ class _SubtitutionState extends State<Subtitution> {
                         ),
                       );
                     }).toList(),
-                  )
-
+                  ),
                 ],
               ),
               Padding(padding: EdgeInsets.all(20)),
@@ -279,9 +281,9 @@ class _SubtitutionState extends State<Subtitution> {
                   );
 
                   sendSubtitutionData(subtitutionData);
-
-                  Navigator.push(
-                    context,
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => Kalkulator(
                         token: widget.token,
